@@ -1,0 +1,5 @@
+Makefile
+main
+data/*
+.DS_Store
+*.py
