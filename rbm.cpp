@@ -6,13 +6,13 @@
 
 rbm::rbm(MTRand & random) {
 
-    epochs = 500;
-    batch_size=100;
+    epochs = 1;
+    batch_size=1000;
     learning_rate  = 0.01;
-    CD_order = 10;
+    CD_order = 1;
     L2_par = 0.0;
     
-    n_h = 8;
+    n_h = 4;
     n_v = 16;
     
     W.setZero(n_h,n_v);
@@ -21,7 +21,7 @@ rbm::rbm(MTRand & random) {
     
     dW.setZero(n_h,n_v);
     dB.setZero(n_v);
-    dB.setZero(n_h);
+    dC.setZero(n_h);
 
     double bound = 4.0 * sqrt(6.0/(n_h + n_v));
     double r;
@@ -164,13 +164,13 @@ void rbm::CD_k(MTRand & random, MatrixXd batch) {
         dC += -h;
     } 
     
-    rec_err = reconstruction_error(batch,h_state);
+    //rec_err = reconstruction_error(batch,h_state);
 
-    cout << "Reconstruction Error: " << rec_err << endl;
+    //cout << "Reconstruction Error: " << rec_err << endl;
 
     W += + (learning_rate/batch_size) * dW;
-    b += + (learning_rate/batch_size) * dB;
-    c += + (learning_rate/batch_size) * dC;
+    //b += + (learning_rate/batch_size) * dB;
+    //c += + (learning_rate/batch_size) * dC;
     
 }
 
@@ -191,6 +191,8 @@ void rbm::train(MTRand & random, MatrixXd dataset) {
             CD_k(random,batch);
         } 
     }
+    
+    cout << endl << (W(0,0)) << endl;
 }
 
 
@@ -215,7 +217,7 @@ void rbm::sample(MTRand & random,ofstream & output) {
 
     int n_measure = 100000;
     int n_frequency = 2;
-    int eq = 10000;
+    int eq = 50000;
 
     for (int k=0;k<eq; k++) {
 

@@ -1,9 +1,13 @@
 #include "rbm.cpp"
+#include "crbm.cpp"
 #include <stdlib.h>
 #include <string.h>
 #include <sstream>
 #include <vector>
 #include <time.h>
+#include <omp.h>
+#include <fstream>
+#include <iostream>
 
 int main(int argc, char* argv[]) {
     
@@ -11,7 +15,7 @@ int main(int argc, char* argv[]) {
     
     int T;
     int batch_size = 100;
-    int epochs = 2000;
+    int epochs = 1;
     int CD_order = 20;
     double learning_rate;
     double L2;
@@ -40,13 +44,17 @@ int main(int argc, char* argv[]) {
     samplesName += T_string;
     samplesName += ".txt";
  
-    MTRand random;
+    MTRand random(1234);
 
     rbm rbm(random);    
 
     ifstream datasetFile(datasetName);
     ofstream samplesFile(samplesName);
 
+    //ifstream datasetFile;
+    //ofstream samplesFile;
+
+    //datasetFile.open(datasetName);
     int size = 100000;
 
     MatrixXd dataset(size,rbm.n_v);
@@ -65,10 +73,10 @@ int main(int argc, char* argv[]) {
     //double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
     //cout << "Elementwise elapse time: " << elapsed_secs << endl << endl;
  
-    rbm.batch_size = 1;
+    //rbm.batch_size = 1;
 
-    cout << "\n\n SAMPLING \n\n";
+    //cout << "\n\n SAMPLING \n\n";
 
-    rbm.sample(random,samplesFile);
+    //rbm.sample(random,samplesFile);
     
 }

@@ -19,6 +19,7 @@ class rbm {
         
         // RBM Parameters
         int epochs;
+        int mini_batch_size;
         int batch_size;
         int CD_order;
         int n_h;
@@ -48,7 +49,8 @@ class rbm {
         void CD_k(MTRand & random, MatrixXd batch); 
         void train(MTRand & random, MatrixXd dataset);
         void sample(MTRand & random, ofstream & output);
-        
+        void training_sweep(MTRand & random, MatrixXd batch);
+ 
         // Utilities
         double reconstruction_error(MatrixXd data, MatrixXd h_state);
         void printM(MatrixXd matrix);

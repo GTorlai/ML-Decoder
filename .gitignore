@@ -1,5 +1,7 @@
 Makefile
-main
+main.x
 data/*
 .DS_Store
 *.py
+omp/*
+compile.sh
