@@ -3,6 +3,10 @@
 
 #include <Eigen/Core>
 
+//***********************************************************************
+// Print Matrix or Vector on the screen
+//***********************************************************************
+
 template<typename T> ostream& operator<< (ostream& out, const MatrixBase<T>& M)
 {    
     for (size_t i =0; i< M.rows(); ++i) {
@@ -21,6 +25,10 @@ template<typename T> ostream& operator<< (ostream& out, const MatrixBase<T>& M)
 }
 
 
+//***********************************************************************
+// Write Matrix or Vector on file 
+//***********************************************************************
+
 template<typename T> void write (ofstream& fout,const MatrixBase<T>& M)
 {
     for (size_t i =0; i< M.rows(); ++i) {
@@ -36,7 +44,12 @@ template<typename T> void write (ofstream& fout,const MatrixBase<T>& M)
     fout << endl;
 }
 
-template<typename T> Eigen::MatrixXd sigmoid(const ArrayBase<T>& M)
+
+//***********************************************************************
+// Apply sigmoid function to an array 
+//***********************************************************************
+
+template<typename T> Eigen::ArrayXXd sigmoidTEMP(const ArrayBase<T>& M)
 {
     return M.exp()/(1.0+M.exp());
 

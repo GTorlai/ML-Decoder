@@ -6,6 +6,7 @@
 #include <iostream>
 #include "MersenneTwister.h"
 #include <Eigen/Core>
+#include "utilities.h"
 
 using namespace std;
 using namespace Eigen;

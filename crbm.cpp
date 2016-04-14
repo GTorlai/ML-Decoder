@@ -1,9 +1,9 @@
 #include "crbm.h"
-
+#include <string.h>
 //***********************************************************************
 // Constructor 
 //***********************************************************************
-
+using namespace std;
 crbm::crbm(MTRand & random) {
 
     epochs = 1000;
@@ -39,24 +39,25 @@ crbm::crbm(MTRand & random) {
 }
 
 
-void crbm::loadParameters(int p_index) {
+void crbm::loadParameters(long long int p_index) {
 
-    int L = int(sqrt(n_v/2));
-    string fileName = "data/networks/L";
-    fileName += to_string(L);
-    fileName += "/CRBM_CD";
-    fileName += to_string(CD_order);
-    fileName += "_hid";
-    fileName += to_string(n_h);
-    fileName += "_bs";
-    fileName += to_string(batch_size);
-    fileName += "_ep";
-    fileName += to_string(epochs);
-    fileName += "_LReg0.001";
-    //fileName += to_string(L2_par);
-    fileName += "_lr0.01";
-    //fileName += to_string(learning_rate);
-    fileName += "_ToricCode_p";
+    //int L = int(sqrt(n_v/2));§
+    //string fileName = "data/networks/L";
+    //fileName += to_string(L);
+    //fileName += "/CRBM_CD";
+    //fileName += to_string(CD_order);
+    //fileName += "_hid";
+    //fileName += to_string(n_h);
+    //fileName += "_bs";
+    //fileName += to_string(batch_size);
+    //fileName += "_ep";
+    //fileName += to_string(epochs);
+    //fileName += "_LReg0.001";
+    ////fileName += to_string(L2_par);
+    //fileName += "_lr0.01";
+    ////fileName += to_string(learning_rate);
+    //fileName += "_ToricCode_p";
+    string fileName = "data/networks/L4/CRBM_CD15_hid64_bs100_ep1000_LReg0.001_lr0.01_p";
     if (p_index < 10) {
         fileName += '0';
     }
@@ -97,7 +98,7 @@ void crbm::loadParameters(int p_index) {
 // Hidden Layer Activation 
 //***********************************************************************
 
-MatrixXd crbm::hidden_activation(MatrixXd & v_state,MatrixXd & l_state) {
+MatrixXd crbm::hidden_activation(const MatrixXd & v_state,const MatrixXd & l_state) {
     
     MatrixXd c_batch(batch_size,n_h);
 
@@ -119,7 +120,7 @@ MatrixXd crbm::hidden_activation(MatrixXd & v_state,MatrixXd & l_state) {
 // Visible Layer Activation 
 //***********************************************************************
 
-MatrixXd crbm::visible_activation(MatrixXd & h_state) {
+MatrixXd crbm::visible_activation(const MatrixXd & h_state) {
     
     MatrixXd b_batch(batch_size,n_v);
 
@@ -140,7 +141,7 @@ MatrixXd crbm::visible_activation(MatrixXd & h_state) {
 // Label Layer Activation 
 //***********************************************************************
 
-MatrixXd crbm::label_activation(MatrixXd & h_state) {
+MatrixXd crbm::label_activation(const MatrixXd & h_state) {
     
     MatrixXd d_batch(batch_size,n_l);
 
@@ -162,7 +163,7 @@ MatrixXd crbm::label_activation(MatrixXd & h_state) {
 // Sampling the Hidden Layer 
 //***********************************************************************
 
-MatrixXd crbm::sample_hidden(MTRand & random, MatrixXd & v_state, MatrixXd & l_state) {
+MatrixXd crbm::sample_hidden(MTRand & random, const MatrixXd & v_state, const MatrixXd & l_state) {
     
     MatrixXd activation(batch_size,n_h);
     MatrixXd h_state(batch_size,n_h);
@@ -179,7 +180,7 @@ MatrixXd crbm::sample_hidden(MTRand & random, MatrixXd & v_state, MatrixXd & l_s
 // Sample the Visible Layer
 //***********************************************************************
 
-MatrixXd crbm::sample_visible(MTRand & random, MatrixXd & h_state) {
+MatrixXd crbm::sample_visible(MTRand & random, const MatrixXd & h_state) {
     
     MatrixXd activation(batch_size,n_v);
     MatrixXd v_state(batch_size,n_v);
@@ -196,7 +197,7 @@ MatrixXd crbm::sample_visible(MTRand & random, MatrixXd & h_state) {
 // Sample the Label Layer
 //***********************************************************************
 
-MatrixXd crbm::sample_label(MTRand & random, MatrixXd & h_state) {
+MatrixXd crbm::sample_label(MTRand & random, const MatrixXd & h_state) {
     
     MatrixXd activation(batch_size,n_l);
     MatrixXd l_state(batch_size,n_l);
@@ -210,40 +211,10 @@ MatrixXd crbm::sample_label(MTRand & random, MatrixXd & h_state) {
 
 
 //***********************************************************************
-// Predict Label 
-//***********************************************************************
-
-void crbm::accuracy(MTRand & random, MatrixXd & batch_V,MatrixXd & batch_L) {
-    
-    MatrixXd h_state(batch_size,n_h);
-    MatrixXd v_state(batch_size,n_v);
-    MatrixXd l_state;
-    
-    l_state.setZero(batch_size,n_l);
-    
-    h_state = sample_hidden(random,batch_V,l_state);
-    l_state = sample_label(random,h_state);
- 
-    int eq = 100;
-    int steps = 100;
-
-    for (int n=0; n<eq; n++) {    
-        h_state = sample_hidden(random,batch_V,l_state);
-        l_state = sample_label(random,h_state);
-    }
-    
-    for (int n=0; n<steps; n++) {    
-        h_state = sample_hidden(random,batch_V,l_state);
-        l_state = sample_label(random,h_state);
-    }
-}
-
-
-//***********************************************************************
 // Perform one step of Contrastive Divergence
 //***********************************************************************
 
-void crbm::CD_k(MTRand & random, MatrixXd & batch_V, MatrixXd & batch_L) {
+void crbm::CD_k(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) {
     
     double rec_err;
 
@@ -312,7 +283,7 @@ void crbm::CD_k(MTRand & random, MatrixXd & batch_V, MatrixXd & batch_L) {
 // Train the Boltzmann Machine
 //***********************************************************************
 
-void crbm::train(MTRand & random, MatrixXd & dataset_V, MatrixXd & dataset_L) {
+void crbm::train(MTRand & random, const MatrixXd & dataset_V, const MatrixXd & dataset_L) {
 
     int n_batches = dataset_V.rows() / batch_size;
     MatrixXd batch_V(batch_size,n_v);
@@ -328,26 +299,26 @@ void crbm::train(MTRand & random, MatrixXd & dataset_V, MatrixXd & dataset_L) {
     }
 }
 
-void crbm::saveParameters(int p_index) {
+void crbm::saveParameters(long long int p_index) {
 
     int L = int(sqrt(n_v/2));
-    string fileName = "data/networks/L";
-    fileName += to_string(L);
-    fileName += "/CRBM_CD";
-    fileName += to_string(CD_order);
-    fileName += "_hid";
-    fileName += to_string(n_h);
-    fileName += "_bs";
-    fileName += to_string(batch_size);
-    fileName += "_ep";
-    fileName += to_string(epochs);
-    fileName += "_LReg0.001";
-    //fileName += to_string(L2_par);
-    fileName += "_lr0.01";
-    //fileName += to_string(learning_rate);
-    fileName += "_ToricCode_p";
+    string fileName = "data/networks/L4/CRBM_CD15_hid64_bs100_ep1000_LReg0.001_lr0.01_p";
+    //fileName += to_string(L);
+    //fileName += "/CRBM_CD";
+    //fileName += to_string(CD_order);
+    //fileName += "_hid";
+    //fileName += to_string(n_h);
+    //fileName += "_bs";
+    //fileName += to_string(batch_size);
+    //fileName += "_ep";
+    //fileName += to_string(epochs);
+    //fileName += "_LReg0.001";
+    ////fileName += to_string(L2_par);
+    //fileName += "_lr0.01";
+    ////fileName += to_string(learning_rate);
+    //fileName += "_ToricCode_p";
     if (p_index < 10) {
-        fileName += '0';
+        fileName += "0";
     }
     fileName += to_string(p_index);
     fileName += "_model.txt";
@@ -398,7 +369,7 @@ void crbm::saveParameters(int p_index) {
 //***********************************************************************
 
 vector<double> crbm::decode(MTRand & random, Decoder & TC, 
-                 vector<int> E0, vector<int> S0, ofstream & output) {
+                 vector<int> E0, vector<int> S0) {
     
     batch_size = 1;
 
@@ -427,8 +398,8 @@ vector<double> crbm::decode(MTRand & random, Decoder & TC,
         l_state(0,k) = S0[k];
     }
 
-    int n_measure = 10000;
-    int n_frequency = 1;
+    int n_measure = 100;
+    int n_frequency = 2;
     int eq = 2000;
     
     int corrected = 0;
@@ -472,8 +443,8 @@ vector<double> crbm::decode(MTRand & random, Decoder & TC,
         //    printM_file(v_state,output);
         } 
     } while (compatible == 0);
-    cout << "Syndrome Accuracy: " << 100.0*compatible/(1.0*n_measure) << "%\t";
-    cout << "Correction Accuracy: " << 100.0*corrected/(1.0*compatible) << "%" << endl; 
+    //cout << "Syndrome Accuracy: " << 100.0*compatible/(1.0*n_measure) << "%\t";
+    //cout << "Correction Accuracy: " << 100.0*corrected/(1.0*compatible) << "%" << endl; 
     vector<double> accuracy;
     accuracy.push_back(100.0*compatible/(1.0*n_measure));
     accuracy.push_back(100.0*corrected/(1.0*compatible));
@@ -511,3 +482,55 @@ MatrixXd crbm::MC_sampling(MTRand & random, MatrixXd & activation) {
 }
 
 
+//***********************************************************************
+// Sigmoid function
+//***********************************************************************
+
+MatrixXd crbm::sigmoid(MatrixXd & matrix) {
+
+    MatrixXd X(matrix.rows(),matrix.cols());
+    
+    for (int i=0; i< X.rows(); i++) {
+        for(int j=0; j<X.cols();j++) {
+            X(i,j) = 1.0/(1.0+exp(-matrix(i,j)));
+        }
+    }
+
+    return X;
+
+}
+
+
+////***********************************************************************
+//// Print Matrix
+////***********************************************************************
+//
+//void crbm::printM(MatrixXd matrix) {
+//    
+//    for(int i=0; i< matrix.rows(); i++) {
+//        for(int j=0;j<matrix.cols(); j++) {
+//
+//            cout << matrix(i,j) << " ";
+//        }
+//        cout << endl;
+//    }
+//
+//}
+//
+//
+////***********************************************************************
+//// Print Matrix on File 
+////***********************************************************************
+//
+//void crbm::printM_file(MatrixXd matrix, ofstream & file) {
+//    
+//    for(int i=0; i< matrix.rows(); i++) {
+//        for(int j=0;j<matrix.cols(); j++) {
+//
+//            file << matrix(i,j) << " ";
+//        }
+//        file << endl;
+//    }
+//
+//}
+//
