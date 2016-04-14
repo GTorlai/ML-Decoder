@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include "MersenneTwister.h"
 #include <Eigen/Core>
-
+#include "decoder.cpp"
 using namespace std;
 using namespace Eigen;
 
@@ -52,16 +52,18 @@ class crbm {
         MatrixXd sample_label(MTRand & random, MatrixXd & h_state);
 
         // Core Functions
+        void loadParameters(int p_index);
         void CD_k(MTRand & random, MatrixXd &batch_V, MatrixXd & batch_L);
         //void SGD(MTRand & random, MatrixXd &batch_V, MatrixXd & batch_L); 
         //void predict_label(MTRand & random, MatrixXd & batch_V); 
         void accuracy(MTRand & random, MatrixXd & batch_V, MatrixXd & batch_L);
  
         void train(MTRand & random, MatrixXd & dataset_V, MatrixXd & dataset_L);
-        void sample(MTRand & random, ofstream & output);
+        vector<double> decode(MTRand & random, Decoder & TC, vector<int>  E, vector<int>  S, ofstream & output);
         //void test(MTRand & random,MatrixXd & testset_V, MatrixXd & testset_L,ofstream & output);
 
         // Utilities
+        void saveParameters(int p_index);
         void printM(MatrixXd matrix);
         void printM_file(MatrixXd matrix, ofstream & file);
         MatrixXd sigmoid(MatrixXd & matrix); 

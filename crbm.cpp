@@ -6,15 +6,15 @@
 
 crbm::crbm(MTRand & random) {
 
-    epochs = 1;
-    batch_size=1000;
+    epochs = 1000;
+    batch_size=100;
     learning_rate  = 0.01;
-    CD_order = 1;
-    L2_par = 0.0;
+    CD_order = 15;
+    L2_par = 0.001;
     
-    n_h = 4;
-    n_v = 16;
-    n_l = 8;
+    n_h = 64;
+    n_v = 32;
+    n_l = 16;
 
     W.setZero(n_h,n_v);
     U.setZero(n_h,n_l);
@@ -39,6 +39,60 @@ crbm::crbm(MTRand & random) {
 }
 
 
+void crbm::loadParameters(int p_index) {
+
+    int L = int(sqrt(n_v/2));
+    string fileName = "data/networks/L";
+    fileName += to_string(L);
+    fileName += "/CRBM_CD";
+    fileName += to_string(CD_order);
+    fileName += "_hid";
+    fileName += to_string(n_h);
+    fileName += "_bs";
+    fileName += to_string(batch_size);
+    fileName += "_ep";
+    fileName += to_string(epochs);
+    fileName += "_LReg0.001";
+    //fileName += to_string(L2_par);
+    fileName += "_lr0.01";
+    //fileName += to_string(learning_rate);
+    fileName += "_ToricCode_p";
+    if (p_index < 10) {
+        fileName += '0';
+    }
+    fileName += to_string(p_index);
+    fileName += "_model.txt";
+    
+    ifstream file(fileName);
+
+    for (int i=0; i<n_h;i++) {
+        for (int j=0; j<n_v; j++) {
+            file >> W(i,j);
+        }
+    }
+
+    for (int i=0; i<n_h;i++) {
+        for (int k=0; k<n_l; k++) {
+            file >> U(i,k);
+        }
+    }
+
+    for (int j=0; j<n_v; j++) {
+        file >> b(j);
+    }
+    
+    for (int i=0; i<n_h; i++) {
+        file >> c(i);
+    }
+    
+    for (int k=0; k<n_l; k++) {
+        file >> d(k);
+    }   
+  
+
+
+
+}
 //***********************************************************************
 // Hidden Layer Activation 
 //***********************************************************************
@@ -54,7 +108,7 @@ MatrixXd crbm::hidden_activation(MatrixXd & v_state,MatrixXd & l_state) {
     MatrixXd pre_activation(batch_size,n_h);
     MatrixXd activation(batch_size,n_h);
 
-    pre_activation = v_state * W.transpose() * l_state * U.transpose() + c_batch;
+    pre_activation = v_state * W.transpose() + l_state * U.transpose() + c_batch;
     activation = sigmoid(pre_activation);
     
     return activation;
@@ -245,12 +299,8 @@ void crbm::CD_k(MTRand & random, MatrixXd & batch_V, MatrixXd & batch_L) {
         dD += -l;
     } 
     
-    //rec_err = reconstruction_error(batch,h_state);
-
-    //cout << "Reconstruction Error: " << rec_err << endl;
-
-    W += + (learning_rate/batch_size) * dW;
-    U += + (learning_rate/batch_size) * dU;
+    W += + (learning_rate/batch_size) * (dW + L2_par*W);
+    U += + (learning_rate/batch_size) * (dU + L2_par*U);
     b += + (learning_rate/batch_size) * dB;
     c += + (learning_rate/batch_size) * dC;
     d += + (learning_rate/batch_size) * dD;
@@ -278,48 +328,158 @@ void crbm::train(MTRand & random, MatrixXd & dataset_V, MatrixXd & dataset_L) {
     }
 }
 
+void crbm::saveParameters(int p_index) {
 
-////***********************************************************************
-//// Sample from the Boltzmann Machine
-////***********************************************************************
-//
-//void rbm::sample(MTRand & random,ofstream & output) {
-//    
-//    MatrixXd h_state(batch_size,n_h);
-//    MatrixXd v_state(batch_size,n_v);
-//
-//    for(int s=0; s<batch_size; s++) { 
-//        for (int j=0; j<n_v; j++) {
-//            v_state(s,j) = random.randInt(1);
-//        }
-//        for (int i=0; i<n_h; i++) {
-//            h_state(s,i) = random.randInt(1);
-//        }
-// 
-//    }
-//
-//    int n_measure = 100000;
-//    int n_frequency = 2;
-//    int eq = 50000;
-//
-//    for (int k=0;k<eq; k++) {
-//
-//        v_state = sample_visible(random,h_state);
-//        h_state = sample_hidden(random,v_state);
-//        
-//    }
-//
-//    for (int k=0;k<n_measure; k++) {
-//
-//        for(int i=0; i<n_frequency; i++) {
-//
-//            v_state = sample_visible(random,h_state);
-//            h_state = sample_hidden(random,v_state);
-//        }
-//        
-//        printM_file(v_state,output);
-//    }
-//}
+    int L = int(sqrt(n_v/2));
+    string fileName = "data/networks/L";
+    fileName += to_string(L);
+    fileName += "/CRBM_CD";
+    fileName += to_string(CD_order);
+    fileName += "_hid";
+    fileName += to_string(n_h);
+    fileName += "_bs";
+    fileName += to_string(batch_size);
+    fileName += "_ep";
+    fileName += to_string(epochs);
+    fileName += "_LReg0.001";
+    //fileName += to_string(L2_par);
+    fileName += "_lr0.01";
+    //fileName += to_string(learning_rate);
+    fileName += "_ToricCode_p";
+    if (p_index < 10) {
+        fileName += '0';
+    }
+    fileName += to_string(p_index);
+    fileName += "_model.txt";
+    
+    ofstream file(fileName);
+
+    for (int i=0; i<n_h;i++) {
+        for (int j=0; j<n_v; j++) {
+            file << W(i,j) << " ";
+        }
+        file << endl;
+    }
+
+    file << endl << endl;
+
+    for (int i=0; i<n_h;i++) {
+        for (int k=0; k<n_l; k++) {
+            file << U(i,k) << " ";
+        }
+        file << endl;
+    }
+
+    file << endl << endl;
+
+    for (int j=0; j<n_v; j++) {
+        file << b(j) << " ";
+    }
+    
+    file << endl << endl;
+
+    for (int i=0; i<n_h; i++) {
+        file << c(i) << " ";
+    }
+    
+    file << endl << endl;
+
+    for (int k=0; k<n_l; k++) {
+        file << d(k) << " ";
+    }   
+    
+    file.close(); 
+
+}
+
+
+//***********************************************************************
+// Sample from the Boltzmann Machine
+//***********************************************************************
+
+vector<double> crbm::decode(MTRand & random, Decoder & TC, 
+                 vector<int> E0, vector<int> S0, ofstream & output) {
+    
+    batch_size = 1;
+
+    MatrixXd h_state(batch_size,n_h);
+    MatrixXd v_state(batch_size,n_v);
+    MatrixXd l_state(batch_size,n_l);
+    //MatrixXi E(batch_size,n_v); 
+
+    vector<int> E;
+    vector<int> C;
+    E.assign(n_v,0);
+    C.assign(n_v,0);
+
+    l_state.setZero(batch_size,n_l);
+
+    for(int s=0; s<batch_size; s++) { 
+        for (int j=0; j<n_v; j++) {
+            v_state(s,j) = random.randInt(1);
+        }
+        for (int i=0; i<n_h; i++) {
+            h_state(s,i) = random.randInt(1);
+        }
+    }
+    
+    for (int k=0; k<n_l; k++) {
+        l_state(0,k) = S0[k];
+    }
+
+    int n_measure = 10000;
+    int n_frequency = 1;
+    int eq = 2000;
+    
+    int corrected = 0;
+    int compatible = 0;
+    int S_status;
+    int C_status;
+
+    for (int k=0;k<eq; k++) {
+        
+        h_state = sample_hidden(random,v_state,l_state);  
+        v_state = sample_visible(random,h_state);
+    }
+
+    //E = v_state.cast <int> ();
+    do {
+        for (int k=0;k<n_measure; k++) {
+
+        //    for(int i=0; i<n_frequency; i++) {
+            
+            h_state = sample_hidden(random,v_state,l_state);
+            v_state = sample_visible(random,h_state);
+
+            for (int j=0; j<n_v; j++) {
+
+                E[j] = v_state(0,j);
+            }
+            
+            S_status = TC.syndromeCheck(E0,E);
+            if (S_status == 0) {
+                compatible++;
+
+                C = TC.getCycle(E0,E);
+                C_status = TC.getLogicalState(C);
+                if (C_status == 0) {
+                    corrected++;
+                }
+            }
+
+                    //    }
+        //    
+        //    printM_file(v_state,output);
+        } 
+    } while (compatible == 0);
+    cout << "Syndrome Accuracy: " << 100.0*compatible/(1.0*n_measure) << "%\t";
+    cout << "Correction Accuracy: " << 100.0*corrected/(1.0*compatible) << "%" << endl; 
+    vector<double> accuracy;
+    accuracy.push_back(100.0*compatible/(1.0*n_measure));
+    accuracy.push_back(100.0*corrected/(1.0*compatible));
+
+    return accuracy;
+}
 
 
 //***********************************************************************
