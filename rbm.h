@@ -1,14 +1,15 @@
 #ifndef RBM_H
 #define RBM_H
 
-#include <vector>
-#include <fstream>
+//#include <vector>
+//#include <fstream>
 #include <stdio.h>
 #include <math.h>
-#include <iostream>
+//#include <iostream>
 #include <stdlib.h>
-#include "MersenneTwister.h"
-#include <Eigen/Core>
+//#include "MersenneTwister.h"
+//#include <Eigen/Core>
+#include "decoder.cpp"
 
 using namespace std;
 using namespace Eigen;

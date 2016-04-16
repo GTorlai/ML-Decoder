@@ -1,9 +1,9 @@
 #ifndef DECODER_H
 #define DECODER_H
 
-#include <vector>
+//#include <vector>
 #include <fstream>
-#include <iostream>
+//#include <iostream>
 #include "MersenneTwister.h"
 #include <Eigen/Core>
 #include "utilities.h"

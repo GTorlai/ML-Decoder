@@ -167,24 +167,6 @@ int Decoder::getLogicalState(vector<int> C) {
 }
 
 
-
-void Decoder::generateDataset(MTRand & random, double p, ofstream & file_S, ofstream & file_E) {
-    
-    int n_samples = 200000;
-    
-    vector<int> E;
-    vector<int> S;
-
-    for (int k=0; k<n_samples; k++) {
-
-        E = generateError(random,p);
-        S = getSyndrome(E);
-        
-        writeVector(E,file_E);
-        writeVector(S,file_S);
-    }
-}
-
 void Decoder::testDecoder(MTRand & random) {
 
     vector<int> E;

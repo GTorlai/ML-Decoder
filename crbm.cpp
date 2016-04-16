@@ -1,20 +1,30 @@
 #include "crbm.h"
 #include <string.h>
-//***********************************************************************
+//*****************************************************************************
 // Constructor 
-//***********************************************************************
+//*****************************************************************************
 using namespace std;
-crbm::crbm(MTRand & random) {
+crbm::crbm(MTRand & random, map<string,float>& parameters) {
 
-    epochs = 1000;
-    batch_size=100;
-    learning_rate  = 0.01;
-    CD_order = 15;
-    L2_par = 0.001;
-    
-    n_h = 64;
-    n_v = 32;
-    n_l = 16;
+    epochs        = int(parameters["ep"]);
+    batch_size    = int(parameters["bs"]);
+    learning_rate = parameters["lr"];
+    L2_par        = parameters["L2"];
+
+    n_v = int(parameters["nV"]);
+    n_h = int(parameters["nH"]);
+    n_l = int(parameters["nL"]);
+ 
+            
+            
+    //batch_size=100;
+    //learning_rate  = 0.01;
+    //CD_order = 15;
+    //L2_par = 0.001;
+    //
+    //n_h = 64;
+    //n_v = 32;
+    //n_l = 16;
 
     W.setZero(n_h,n_v);
     U.setZero(n_h,n_l);
@@ -94,9 +104,9 @@ void crbm::loadParameters(long long int p_index) {
 
 
 }
-//***********************************************************************
+//*****************************************************************************
 // Hidden Layer Activation 
-//***********************************************************************
+//*****************************************************************************
 
 MatrixXd crbm::hidden_activation(const MatrixXd & v_state,const MatrixXd & l_state) {
     
@@ -116,9 +126,9 @@ MatrixXd crbm::hidden_activation(const MatrixXd & v_state,const MatrixXd & l_sta
 }
 
 
-//***********************************************************************
+//*****************************************************************************
 // Visible Layer Activation 
-//***********************************************************************
+//*****************************************************************************
 
 MatrixXd crbm::visible_activation(const MatrixXd & h_state) {
     
@@ -137,9 +147,9 @@ MatrixXd crbm::visible_activation(const MatrixXd & h_state) {
     return activation; 
 }
 
-//***********************************************************************
+//*****************************************************************************
 // Label Layer Activation 
-//***********************************************************************
+//*****************************************************************************
 
 MatrixXd crbm::label_activation(const MatrixXd & h_state) {
     
@@ -159,9 +169,9 @@ MatrixXd crbm::label_activation(const MatrixXd & h_state) {
 }
 
 
-//***********************************************************************
+//*****************************************************************************
 // Sampling the Hidden Layer 
-//***********************************************************************
+//*****************************************************************************
 
 MatrixXd crbm::sample_hidden(MTRand & random, const MatrixXd & v_state, const MatrixXd & l_state) {
     
@@ -176,9 +186,9 @@ MatrixXd crbm::sample_hidden(MTRand & random, const MatrixXd & v_state, const Ma
 }
 
 
-//***********************************************************************
+//*****************************************************************************
 // Sample the Visible Layer
-//***********************************************************************
+//*****************************************************************************
 
 MatrixXd crbm::sample_visible(MTRand & random, const MatrixXd & h_state) {
     
@@ -193,9 +203,9 @@ MatrixXd crbm::sample_visible(MTRand & random, const MatrixXd & h_state) {
 }
 
 
-//***********************************************************************
+//*****************************************************************************
 // Sample the Label Layer
-//***********************************************************************
+//*****************************************************************************
 
 MatrixXd crbm::sample_label(MTRand & random, const MatrixXd & h_state) {
     
@@ -210,9 +220,9 @@ MatrixXd crbm::sample_label(MTRand & random, const MatrixXd & h_state) {
 }
 
 
-//***********************************************************************
+//*****************************************************************************
 // Perform one step of Contrastive Divergence
-//***********************************************************************
+//*****************************************************************************
 
 void crbm::CD_k(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) {
     
@@ -279,9 +289,9 @@ void crbm::CD_k(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batc
 }
 
 
-//***********************************************************************
+//*****************************************************************************
 // Train the Boltzmann Machine
-//***********************************************************************
+//*****************************************************************************
 
 void crbm::train(MTRand & random, const MatrixXd & dataset_V, const MatrixXd & dataset_L) {
 
@@ -292,9 +302,11 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V, const MatrixXd & d
     for (int e=0; e<epochs; e++) {
         cout << "Epoch: " << e << endl;
         for (int b=0; b< n_batches; b++) {
+            cout << b << endl;
             batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
             batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
             CD_k(random,batch_V,batch_L);
+            cout << W(0,0) << endl;
         } 
     }
 }
@@ -364,9 +376,9 @@ void crbm::saveParameters(long long int p_index) {
 }
 
 
-//***********************************************************************
+//*****************************************************************************
 // Sample from the Boltzmann Machine
-//***********************************************************************
+//*****************************************************************************
 
 vector<double> crbm::decode(MTRand & random, Decoder & TC, 
                  vector<int> E0, vector<int> S0) {
@@ -453,9 +465,9 @@ vector<double> crbm::decode(MTRand & random, Decoder & TC,
 }
 
 
-//***********************************************************************
+//*****************************************************************************
 // Block Gibbs Sampler
-//***********************************************************************
+//*****************************************************************************
 
 MatrixXd crbm::MC_sampling(MTRand & random, MatrixXd & activation) {
 
@@ -482,9 +494,9 @@ MatrixXd crbm::MC_sampling(MTRand & random, MatrixXd & activation) {
 }
 
 
-//***********************************************************************
+//*****************************************************************************
 // Sigmoid function
-//***********************************************************************
+//*****************************************************************************
 
 MatrixXd crbm::sigmoid(MatrixXd & matrix) {
 
@@ -501,36 +513,3 @@ MatrixXd crbm::sigmoid(MatrixXd & matrix) {
 }
 
 
-////***********************************************************************
-//// Print Matrix
-////***********************************************************************
-//
-//void crbm::printM(MatrixXd matrix) {
-//    
-//    for(int i=0; i< matrix.rows(); i++) {
-//        for(int j=0;j<matrix.cols(); j++) {
-//
-//            cout << matrix(i,j) << " ";
-//        }
-//        cout << endl;
-//    }
-//
-//}
-//
-//
-////***********************************************************************
-//// Print Matrix on File 
-////***********************************************************************
-//
-//void crbm::printM_file(MatrixXd matrix, ofstream & file) {
-//    
-//    for(int i=0; i< matrix.rows(); i++) {
-//        for(int j=0;j<matrix.cols(); j++) {
-//
-//            file << matrix(i,j) << " ";
-//        }
-//        file << endl;
-//    }
-//
-//}
-//

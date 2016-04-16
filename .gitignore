@@ -1,7 +1,8 @@
 Makefile
-main.x
+run.x
 data/*
 .DS_Store
 *.py
-omp/*
-compile.sh
+tests
+scripts
+*dbn*
