@@ -1,16 +1,8 @@
 #ifndef CRBM_H
 #define CRBM_H
 
-//#include <vector>
-//#include <fstream>
-//#include <stdio.h>
-//#include <math.h>
-//#include <iostream>
-//#include <stdlib.h>
-//#include "MersenneTwister.h"
-//#include <Eigen/Core>
-//#include "decoder.cpp"
 #include "rbm.cpp"
+
 using namespace std;
 using namespace Eigen;
 

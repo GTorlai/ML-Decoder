@@ -1,9 +1,12 @@
 #include "crbm.h"
 #include <string.h>
+
 //*****************************************************************************
 // Constructor 
 //*****************************************************************************
-crbm::crbm(MTRand & random, map<string,float>& parameters) {
+
+crbm::crbm(MTRand & random, map<string,float>& parameters) 
+{
 
     epochs        = int(parameters["ep"]);
     batch_size    = int(parameters["bs"]);
@@ -48,66 +51,13 @@ crbm::crbm(MTRand & random, map<string,float>& parameters) {
 }
 
 
-//void crbm::loadParameters(long long int p_index) {
-//
-//    //int L = int(sqrt(n_v/2));§
-//    //string fileName = "data/networks/L";
-//    //fileName += to_string(L);
-//    //fileName += "/CRBM_CD";
-//    //fileName += to_string(CD_order);
-//    //fileName += "_hid";
-//    //fileName += to_string(n_h);
-//    //fileName += "_bs";
-//    //fileName += to_string(batch_size);
-//    //fileName += "_ep";
-//    //fileName += to_string(epochs);
-//    //fileName += "_LReg0.001";
-//    ////fileName += to_string(L2_par);
-//    //fileName += "_lr0.01";
-//    ////fileName += to_string(learning_rate);
-//    //fileName += "_ToricCode_p";
-//    string fileName = "data/networks/L4/CRBM_CD15_hid64_bs100_ep1000_LReg0.001_lr0.01_p";
-//    if (p_index < 10) {
-//        fileName += '0';
-//    }
-//    fileName += to_string(p_index);
-//    fileName += "_model.txt";
-//    
-//    ifstream file(fileName);
-//
-//    for (int i=0; i<n_h;i++) {
-//        for (int j=0; j<n_v; j++) {
-//            file >> W(i,j);
-//        }
-//    }
-//
-//    for (int i=0; i<n_h;i++) {
-//        for (int k=0; k<n_l; k++) {
-//            file >> U(i,k);
-//        }
-//    }
-//
-//    for (int j=0; j<n_v; j++) {
-//        file >> b(j);
-//    }
-//    
-//    for (int i=0; i<n_h; i++) {
-//        file >> c(i);
-//    }
-//    
-//    for (int k=0; k<n_l; k++) {
-//        file >> d(k);
-//    }   
-//  
-//
-//
-//
-//}
 //*****************************************************************************
 // Hidden Layer Activation 
 //*****************************************************************************
 
-MatrixXd crbm::hidden_activation(const MatrixXd & v_state,const MatrixXd & l_state) {
+MatrixXd crbm::hidden_activation(const MatrixXd & v_state,
+                                 const MatrixXd & l_state) 
+{
     
     MatrixXd c_batch(batch_size,n_h);
 
@@ -129,7 +79,8 @@ MatrixXd crbm::hidden_activation(const MatrixXd & v_state,const MatrixXd & l_sta
 // Visible Layer Activation 
 //*****************************************************************************
 
-MatrixXd crbm::visible_activation(const MatrixXd & h_state) {
+MatrixXd crbm::visible_activation(const MatrixXd & h_state) 
+{
     
     MatrixXd b_batch(batch_size,n_v);
 
@@ -150,7 +101,8 @@ MatrixXd crbm::visible_activation(const MatrixXd & h_state) {
 // Label Layer Activation 
 //*****************************************************************************
 
-MatrixXd crbm::label_activation(const MatrixXd & h_state) {
+MatrixXd crbm::label_activation(const MatrixXd & h_state) 
+{
     
     MatrixXd d_batch(batch_size,n_l);
 
@@ -172,7 +124,9 @@ MatrixXd crbm::label_activation(const MatrixXd & h_state) {
 // Sampling the Hidden Layer 
 //*****************************************************************************
 
-MatrixXd crbm::sample_hidden(MTRand & random, const MatrixXd & v_state, const MatrixXd & l_state) {
+MatrixXd crbm::sample_hidden(MTRand & random, const MatrixXd & v_state, 
+                                              const MatrixXd & l_state) 
+{
     
     MatrixXd activation(batch_size,n_h);
     MatrixXd h_state(batch_size,n_h);
@@ -206,7 +160,8 @@ MatrixXd crbm::sample_visible(MTRand & random, const MatrixXd & h_state) {
 // Sample the Label Layer
 //*****************************************************************************
 
-MatrixXd crbm::sample_label(MTRand & random, const MatrixXd & h_state) {
+MatrixXd crbm::sample_label(MTRand & random, const MatrixXd & h_state) 
+{
     
     MatrixXd activation(batch_size,n_l);
     MatrixXd l_state(batch_size,n_l);
@@ -223,7 +178,9 @@ MatrixXd crbm::sample_label(MTRand & random, const MatrixXd & h_state) {
 // Perform one step of Contrastive Divergence
 //*****************************************************************************
 
-void crbm::CD_k(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) {
+void crbm::CD_k(MTRand & random, const MatrixXd & batch_V, 
+                                 const MatrixXd & batch_L) 
+{
     
     double rec_err;
 
@@ -292,7 +249,9 @@ void crbm::CD_k(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batc
 // Train the Boltzmann Machine
 //*****************************************************************************
 
-void crbm::train(MTRand & random, const MatrixXd & dataset_V, const MatrixXd & dataset_L) {
+void crbm::train(MTRand & random, const MatrixXd & dataset_V, 
+                                  const MatrixXd & dataset_L) 
+{
 
     int n_batches = dataset_V.rows() / batch_size;
     MatrixXd batch_V(batch_size,n_v);
@@ -309,7 +268,51 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V, const MatrixXd & d
     }
 }
 
-void crbm::saveParameters(string& modelName) {
+
+//*****************************************************************************
+// Save the Network Parameters
+//*****************************************************************************
+
+void crbm::loadParameters(string& modelName) 
+{
+        
+    ifstream file(modelName);
+
+    for (int i=0; i<n_h;i++) {
+        for (int j=0; j<n_v; j++) {
+            file >> W(i,j);
+        }
+    }
+
+    for (int i=0; i<n_h;i++) {
+        for (int k=0; k<n_l; k++) {
+            file >> U(i,k);
+        }
+    }
+
+    for (int j=0; j<n_v; j++) {
+        file >> b(j);
+    }
+    
+    for (int i=0; i<n_h; i++) {
+        file >> c(i);
+    }
+    
+    for (int k=0; k<n_l; k++) {
+        file >> d(k);
+    }   
+  
+
+
+
+}
+
+//*****************************************************************************
+// Save the Network Parameters
+//*****************************************************************************
+
+void crbm::saveParameters(string& modelName) 
+{
 
     ofstream file(modelName);
 
@@ -353,11 +356,12 @@ void crbm::saveParameters(string& modelName) {
 
 
 //*****************************************************************************
-// Sample from the Boltzmann Machine
+// Perform Error Correction
 //*****************************************************************************
 
 vector<double> crbm::decode(MTRand & random, Decoder & TC, 
-                 vector<int> E0, vector<int> S0) {
+                 vector<int> E0, vector<int> S0) 
+{
     
     batch_size = 1;
 
@@ -445,7 +449,8 @@ vector<double> crbm::decode(MTRand & random, Decoder & TC,
 // Block Gibbs Sampler
 //*****************************************************************************
 
-MatrixXd crbm::MC_sampling(MTRand & random, MatrixXd & activation) {
+MatrixXd crbm::MC_sampling(MTRand & random, MatrixXd & activation) 
+{
 
     MatrixXd samples;
 
@@ -474,7 +479,8 @@ MatrixXd crbm::MC_sampling(MTRand & random, MatrixXd & activation) {
 // Sigmoid function
 //*****************************************************************************
 
-MatrixXd crbm::sigmoid(MatrixXd & matrix) {
+MatrixXd crbm::sigmoid(MatrixXd & matrix) 
+{
 
     MatrixXd X(matrix.rows(),matrix.cols());
     
@@ -487,6 +493,11 @@ MatrixXd crbm::sigmoid(MatrixXd & matrix) {
     return X;
 
 }
+
+
+//*****************************************************************************
+// Print Network Informations
+//*****************************************************************************
 
 void crbm::printNetwork() 
 {

@@ -50,7 +50,7 @@ string buildBaseName(const string& network, const string& model,
     if (network.compare("DBN") == 0) {
         
         for (int l=0; l<par["l"]; ++l) {
-            string hid = "nH" + to_string(l);
+            string hid = "nH" + boost::str(boost::format("%d") % l);
             baseName += boost::str(boost::format("%.0f") % par[hid]);
             baseName += "_";
         }
@@ -95,23 +95,35 @@ string buildModelName(const string& network, const string& model,
  
     return modelName;
 }
+
 //*****************************************************************************
 // Load datasets 
 //*****************************************************************************
 
-vector<Eigen::MatrixXd> loadDataset(int size, map<string,float>& parameters) 
+vector<Eigen::MatrixXd> loadDataset(int size, string id, 
+                                    map<string,float>& parameters) 
 
 {
-    string sSize = to_string(size/1000);
+    int L = int(sqrt(parameters["nV"]/2));
+    string sSize = boost::str(boost::format("%d") % (size/1000));
     Eigen::MatrixXd data_E(size,int(parameters["nV"]));
     Eigen::MatrixXd data_S(size,int(parameters["nL"]));
     
     vector<Eigen::MatrixXd> dataset;
 
-    string baseName     = "data/datasets/Train/L4/";
-    string errorName    = baseName + "Error_Train_L4_";
-    string syndromeName = baseName + "Syndrome_Train_L4_";
+    string baseName     = "data/datasets/";
+    baseName += id;
+    baseName += "/L";
+    baseName += boost::str(boost::format("%d") % L);
+    baseName += "/";
     
+    string errorName    = baseName + "Error_" + id;
+    string syndromeName = baseName + "Syndrome_" + id;
+ 
+    errorName    += "_L" + boost::str(boost::format("%d") % L) + "_";
+    syndromeName += "_L" + boost::str(boost::format("%d") % L) + "_";
+
+
     errorName    += sSize;
     syndromeName += sSize;
     errorName    += "k_p";
@@ -120,7 +132,7 @@ vector<Eigen::MatrixXd> loadDataset(int size, map<string,float>& parameters)
     syndromeName += boost::str(boost::format("%.3f") % parameters["p"]);
     errorName    += ".txt";
     syndromeName += ".txt";
-
+    
     ifstream dataFile_E(errorName);
     ifstream dataFile_S(syndromeName);
     
