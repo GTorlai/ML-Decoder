@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     map<string,string> Helper;
     map<string,float> Parameters;
     
-    int size = 200000;
+    int size = 20000;
 
     string model = "TC2d";
     string command = argv[1];
@@ -54,8 +54,8 @@ int main(int argc, char* argv[]) {
     if (command.compare("train") == 0) {
         
         vector<MatrixXd> dataset(2);
-        MatrixXd data_E;
-        MatrixXd data_S;
+        MatrixXd data_E(size,int(Parameters["nV"]));
+        MatrixXd data_S(size,int(Parameters["nL"]));
         
         dataset = loadDataset(size,Parameters);
         data_E = dataset[0];
@@ -64,53 +64,29 @@ int main(int argc, char* argv[]) {
         if (network.compare("CRBM") == 0) {
             
             crbm crbm(random,Parameters);
+            //crbm.printNetwork();
+            string modelName = buildModelName(network,model,Parameters);
             crbm.train(random,data_E,data_S); 
-            //crbm.saveParameters(p_index); 
+            crbm.saveParameters(modelName); 
         }
     }
 
 
-    //Decoder TC(4);
-
-    //p = p_index/100.0;
-
-    //string extension = "_Train_200k_p";
-    //if (p_index<10) {
-    //    extension += "0";
-    //}
-    //extension += to_string(p_index);
+    
+    //double p = 0.05;
+    //MTRand random(1234);
+    //string extension = "_Train_L4_200k_p";
+    //extension += to_string(p);
     //extension += ".txt";
-    //string nameE = "data/datasets/train/E" + extension;
-    //string nameS = "data/datasets/train/S" + extension;
+    //string nameE = "data/datasets/Train/Error" + extension;
+    //string nameS = "data/datasets/Train/Syndrome" + extension;
     //
-    //ofstream outputE(nameE);
-    //ofstream outputS(nameS);
-    //ofstream outputE("E_Train_10k_p05.txt");
-    //ofstream outputS("S_Train_10k_p05.txt");
-
     //crbm crbm(random);
-     
-    //TC.generateDataset(random,p,outputS,outputE);
+    //   
+    //ifstream dataFile_E(nameE);
+    //ifstream dataFile_S(nameS);
 
-    //clock_t begin = clock();
-    
-    
-    //string dataName_E = "data/datasets/test/E_Test_10k_p";
-    //string dataName_S = "data/datasets/test/S_Test_10k_p";
-    //if (p_index < 10) {
-    //    dataName_E += "0";
-    //    dataName_S += "0";
-    //}
-    //dataName_E += to_string(p_index);
-    //dataName_S += to_string(p_index);
-    //dataName_E += ".txt";
-    //dataName_S += ".txt";
-
-    ////
-    //ifstream dataFile_E(dataName_E);
-    //ifstream dataFile_S(dataName_S);
-
-    //int size = 1000;
+    //int size = 200000;
 
     //MatrixXd data_E(size,crbm.n_v);
     //MatrixXd data_S(size,crbm.n_l);
@@ -127,6 +103,26 @@ int main(int argc, char* argv[]) {
     //        dataFile_S >> data_S(n,k);
     //    }
     //}
+    //crbm.train(random,data_E,data_S);
+    
+    
+    
+    
+    
+    
+    
+    //Decoder TC(4);
+    //clock_t begin = clock();
+    //string dataName_E = "data/datasets/test/E_Test_10k_p";
+    //string dataName_S = "data/datasets/test/S_Test_10k_p";
+    //if (p_index < 10) {
+    //    dataName_E += "0";
+    //    dataName_S += "0";
+    //}
+    //dataName_E += to_string(p_index);
+    //dataName_S += to_string(p_index);
+    //dataName_E += ".txt";
+    //dataName_S += ".txt";
 
     //vector<int> E0;
     //vector<int> S0;

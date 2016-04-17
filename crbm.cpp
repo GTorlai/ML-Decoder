@@ -3,28 +3,27 @@
 //*****************************************************************************
 // Constructor 
 //*****************************************************************************
-using namespace std;
 crbm::crbm(MTRand & random, map<string,float>& parameters) {
 
     epochs        = int(parameters["ep"]);
     batch_size    = int(parameters["bs"]);
     learning_rate = parameters["lr"];
     L2_par        = parameters["L2"];
-
+    CD_order      = int(parameters["CD"]);
     n_v = int(parameters["nV"]);
     n_h = int(parameters["nH"]);
     n_l = int(parameters["nL"]);
- 
-            
-            
-    //batch_size=100;
-    //learning_rate  = 0.01;
-    //CD_order = 15;
-    //L2_par = 0.001;
-    //
-    //n_h = 64;
-    //n_v = 32;
-    //n_l = 16;
+
+//crbm::crbm(MTRand & random) {
+// 
+//    batch_size=100;
+//    learning_rate  = 0.01;
+//    CD_order = 15;
+//    L2_par = 0.001;
+//    epochs = 1; 
+//    n_h = 64;
+//    n_v = 32;
+//    n_l = 16;
 
     W.setZero(n_h,n_v);
     U.setZero(n_h,n_l);
@@ -49,61 +48,61 @@ crbm::crbm(MTRand & random, map<string,float>& parameters) {
 }
 
 
-void crbm::loadParameters(long long int p_index) {
-
-    //int L = int(sqrt(n_v/2));§
-    //string fileName = "data/networks/L";
-    //fileName += to_string(L);
-    //fileName += "/CRBM_CD";
-    //fileName += to_string(CD_order);
-    //fileName += "_hid";
-    //fileName += to_string(n_h);
-    //fileName += "_bs";
-    //fileName += to_string(batch_size);
-    //fileName += "_ep";
-    //fileName += to_string(epochs);
-    //fileName += "_LReg0.001";
-    ////fileName += to_string(L2_par);
-    //fileName += "_lr0.01";
-    ////fileName += to_string(learning_rate);
-    //fileName += "_ToricCode_p";
-    string fileName = "data/networks/L4/CRBM_CD15_hid64_bs100_ep1000_LReg0.001_lr0.01_p";
-    if (p_index < 10) {
-        fileName += '0';
-    }
-    fileName += to_string(p_index);
-    fileName += "_model.txt";
-    
-    ifstream file(fileName);
-
-    for (int i=0; i<n_h;i++) {
-        for (int j=0; j<n_v; j++) {
-            file >> W(i,j);
-        }
-    }
-
-    for (int i=0; i<n_h;i++) {
-        for (int k=0; k<n_l; k++) {
-            file >> U(i,k);
-        }
-    }
-
-    for (int j=0; j<n_v; j++) {
-        file >> b(j);
-    }
-    
-    for (int i=0; i<n_h; i++) {
-        file >> c(i);
-    }
-    
-    for (int k=0; k<n_l; k++) {
-        file >> d(k);
-    }   
-  
-
-
-
-}
+//void crbm::loadParameters(long long int p_index) {
+//
+//    //int L = int(sqrt(n_v/2));§
+//    //string fileName = "data/networks/L";
+//    //fileName += to_string(L);
+//    //fileName += "/CRBM_CD";
+//    //fileName += to_string(CD_order);
+//    //fileName += "_hid";
+//    //fileName += to_string(n_h);
+//    //fileName += "_bs";
+//    //fileName += to_string(batch_size);
+//    //fileName += "_ep";
+//    //fileName += to_string(epochs);
+//    //fileName += "_LReg0.001";
+//    ////fileName += to_string(L2_par);
+//    //fileName += "_lr0.01";
+//    ////fileName += to_string(learning_rate);
+//    //fileName += "_ToricCode_p";
+//    string fileName = "data/networks/L4/CRBM_CD15_hid64_bs100_ep1000_LReg0.001_lr0.01_p";
+//    if (p_index < 10) {
+//        fileName += '0';
+//    }
+//    fileName += to_string(p_index);
+//    fileName += "_model.txt";
+//    
+//    ifstream file(fileName);
+//
+//    for (int i=0; i<n_h;i++) {
+//        for (int j=0; j<n_v; j++) {
+//            file >> W(i,j);
+//        }
+//    }
+//
+//    for (int i=0; i<n_h;i++) {
+//        for (int k=0; k<n_l; k++) {
+//            file >> U(i,k);
+//        }
+//    }
+//
+//    for (int j=0; j<n_v; j++) {
+//        file >> b(j);
+//    }
+//    
+//    for (int i=0; i<n_h; i++) {
+//        file >> c(i);
+//    }
+//    
+//    for (int k=0; k<n_l; k++) {
+//        file >> d(k);
+//    }   
+//  
+//
+//
+//
+//}
 //*****************************************************************************
 // Hidden Layer Activation 
 //*****************************************************************************
@@ -302,7 +301,6 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V, const MatrixXd & d
     for (int e=0; e<epochs; e++) {
         cout << "Epoch: " << e << endl;
         for (int b=0; b< n_batches; b++) {
-            cout << b << endl;
             batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
             batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
             CD_k(random,batch_V,batch_L);
@@ -311,31 +309,9 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V, const MatrixXd & d
     }
 }
 
-void crbm::saveParameters(long long int p_index) {
+void crbm::saveParameters(string& modelName) {
 
-    int L = int(sqrt(n_v/2));
-    string fileName = "data/networks/L4/CRBM_CD15_hid64_bs100_ep1000_LReg0.001_lr0.01_p";
-    //fileName += to_string(L);
-    //fileName += "/CRBM_CD";
-    //fileName += to_string(CD_order);
-    //fileName += "_hid";
-    //fileName += to_string(n_h);
-    //fileName += "_bs";
-    //fileName += to_string(batch_size);
-    //fileName += "_ep";
-    //fileName += to_string(epochs);
-    //fileName += "_LReg0.001";
-    ////fileName += to_string(L2_par);
-    //fileName += "_lr0.01";
-    ////fileName += to_string(learning_rate);
-    //fileName += "_ToricCode_p";
-    if (p_index < 10) {
-        fileName += "0";
-    }
-    fileName += to_string(p_index);
-    fileName += "_model.txt";
-    
-    ofstream file(fileName);
+    ofstream file(modelName);
 
     for (int i=0; i<n_h;i++) {
         for (int j=0; j<n_v; j++) {
@@ -511,5 +487,28 @@ MatrixXd crbm::sigmoid(MatrixXd & matrix) {
     return X;
 
 }
+
+void crbm::printNetwork() 
+{
+
+    cout << "\n\n******************************\n\n" << endl;
+    cout << "CONDITIONAL RESTRICTED BOLTZMANN MACHINE\n\n";
+    cout << "Machine Parameter\n\n";
+    cout << "\tNumber of Visible Units: " << n_v << "\n";
+    cout << "\tNumber of Hidden Units: " << n_h << "\n";
+    cout << "\tNumber of Label Units: " << n_l << "\n";
+    cout << "\nHyper-parameters\n\n";
+    cout << "\tLearning Rate: " << learning_rate << "\n";
+    cout << "\tEpochs: " << epochs << "\n";
+    cout << "\tBatch Size: " << batch_size << "\n";
+    cout << "\tL2 Regularization: " << L2_par << "\n";
+
+    
+ 
+}
+
+
+
+
 
 

@@ -77,6 +77,25 @@ string buildBaseName(const string& network, const string& model,
 
 
 //*****************************************************************************
+// Generate the Name of the model file
+//*****************************************************************************
+
+string buildModelName(const string& network, const string& model,
+                     map<string,float>& par) 
+{
+    
+    int L = int(sqrt(par["nV"]/2));
+    string modelName = "data/networks/L";
+    modelName += boost::str(boost::format("%d") % L);
+    modelName += "/";
+    modelName += buildBaseName(network,model,par); 
+    modelName += "_p";
+    modelName += boost::str(boost::format("%.3f") % par["p"]);
+    modelName += "_model.txt";
+ 
+    return modelName;
+}
+//*****************************************************************************
 // Load datasets 
 //*****************************************************************************
 
@@ -89,9 +108,9 @@ vector<Eigen::MatrixXd> loadDataset(int size, map<string,float>& parameters)
     
     vector<Eigen::MatrixXd> dataset;
 
-    string baseName     = "data/datasets/train/L4/";
-    string errorName    = baseName + "E_Train_";
-    string syndromeName = baseName + "S_Train_";
+    string baseName     = "data/datasets/Train/L4/";
+    string errorName    = baseName + "Error_Train_L4_";
+    string syndromeName = baseName + "Syndrome_Train_L4_";
     
     errorName    += sSize;
     syndromeName += sSize;

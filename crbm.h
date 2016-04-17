@@ -42,7 +42,7 @@ class crbm {
         
         // Constructor
         crbm(MTRand & random, map<string,float>& parameters);
-        
+        //crbm(MTRand & random);
         // Sample functions
         MatrixXd hidden_activation(const MatrixXd & v_state,
                                    const MatrixXd & l_state);
@@ -64,8 +64,9 @@ class crbm {
                               vector<int>  E, vector<int>  S);
 
         // Utilities
-        void loadParameters(long long int p_index);
-        void saveParameters(long long int p_index);
+        void loadParameters(string& modelName);
+        void saveParameters(string& modelName);
+        void printNetwork();
         MatrixXd sigmoid(MatrixXd & matrix); 
         MatrixXd MC_sampling(MTRand & random, MatrixXd & activation);
 
