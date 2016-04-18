@@ -1,9 +1,3 @@
-//#include "rbm.cpp"
-//#include "crbm.cpp"
-//#include <string.h>
-//#include <sstream>
-//#include <vector>
-//#include <iostream>
 #include <stdlib.h>
 #include <time.h>
 #include <omp.h>
@@ -15,8 +9,6 @@ int main(int argc, char* argv[]) {
     map<string,string> Helper;
     map<string,float> Parameters;
     
-    int size = 20000;
-
     string model = "TC2d";
     string command = argv[1];
     string network = argv[2];
@@ -27,13 +19,15 @@ int main(int argc, char* argv[]) {
 
     if (network.compare("DBN") == 0) {
         
-        for (int l=0; l<Parameters["l"]; ++l) {
+        for (int l=1; l<Parameters["l"]+1; ++l) {
         
-        string hid = "nH" + to_string(l);
-        string hid_helper = "Number of Hidden Units on Layer " + to_string(l); 
+        string hid = "nH" + boost::str(boost::format("%d") % l);
+        string hid_helper = "Number of Hidden Units on Layer ";
+        hid_helper += boost::str(boost::format("%d") % l); 
         get_option(hid,  hid_helper ,argc,argv,Parameters,Helper);
         }
     }
+
     else {
         Parameters["l"] = 1;
         get_option("nH" ,"Number of Hidden Units",argc,argv,Parameters,Helper);
@@ -46,142 +40,37 @@ int main(int argc, char* argv[]) {
     get_option("ep","Training Epochs",argc,argv,Parameters,Helper);
     get_option("bs","Batch Size",argc,argv,Parameters,Helper);
 
-    //string baseName = buildBaseName(network,model,Parameters);
-    //cout << endl << baseName << endl; 
-    
     MTRand random(1234);
     
     if (command.compare("train") == 0) {
         
+        int size = 200000;
+
         vector<MatrixXd> dataset(2);
         MatrixXd data_E(size,int(Parameters["nV"]));
         MatrixXd data_S(size,int(Parameters["nL"]));
         
-        dataset = loadDataset(size,Parameters);
+        dataset = loadDataset(size,"Train",Parameters);
         data_E = dataset[0];
         data_S = dataset[1];
-        
         if (network.compare("CRBM") == 0) {
             
-            crbm crbm(random,Parameters);
+            crbm crbm(random,Parameters, int(Parameters["nV"]),
+                                         int(Parameters["nH"]),
+                                         int(Parameters["nL"]));
+
             //crbm.printNetwork();
             string modelName = buildModelName(network,model,Parameters);
             crbm.train(random,data_E,data_S); 
-            crbm.saveParameters(modelName); 
+            //crbm.saveParameters(modelName); 
         }
+        if (network.compare("DBN") == 0) {
+
+            string modelName = buildModelName(network,model,Parameters);
+            dbn dbn(random,Parameters);
+            dbn.Train(random,data_E,data_S);
+            dbn.saveParameters(modelName);
+        } 
     }
-
-
-    
-    //double p = 0.05;
-    //MTRand random(1234);
-    //string extension = "_Train_L4_200k_p";
-    //extension += to_string(p);
-    //extension += ".txt";
-    //string nameE = "data/datasets/Train/Error" + extension;
-    //string nameS = "data/datasets/Train/Syndrome" + extension;
-    //
-    //crbm crbm(random);
-    //   
-    //ifstream dataFile_E(nameE);
-    //ifstream dataFile_S(nameS);
-
-    //int size = 200000;
-
-    //MatrixXd data_E(size,crbm.n_v);
-    //MatrixXd data_S(size,crbm.n_l);
-    //
-    //cout << "\n\n Loading data...\n\n";
-    //
-    //for (int n=0; n<size; n++) {
-    //    for (int j=0; j<crbm.n_v; j++) {
-
-    //        dataFile_E >> data_E(n,j);
-    //    }
-    //    for (int k=0; k<crbm.n_l; k++) {
-
-    //        dataFile_S >> data_S(n,k);
-    //    }
-    //}
-    //crbm.train(random,data_E,data_S);
-    
-    
-    
-    
-    
-    
-    
-    //Decoder TC(4);
-    //clock_t begin = clock();
-    //string dataName_E = "data/datasets/test/E_Test_10k_p";
-    //string dataName_S = "data/datasets/test/S_Test_10k_p";
-    //if (p_index < 10) {
-    //    dataName_E += "0";
-    //    dataName_S += "0";
-    //}
-    //dataName_E += to_string(p_index);
-    //dataName_S += to_string(p_index);
-    //dataName_E += ".txt";
-    //dataName_S += ".txt";
-
-    //vector<int> E0;
-    //vector<int> S0;
-    //E0.assign(crbm.n_v,0);
-    //S0.assign(crbm.n_l,0);
-    //vector<double> accuracy;
-    //accuracy.assign(2,0);
-    //double E_percent = 0.0;
-    //double S_percent = 0.0;
-
-    //crbm.loadParameters(p_index); 
-    //string outName = "data/Accuracy_p";
-    //if (p_index < 10) {
-    //    outName += "0";
-    //}
-    //outName += to_string(p_index);
-    //outName += ".txt";
- 
-    //ofstream fout(outName);
- 
-    //int n_measure = 200;
-    //clock_t begin = clock();
-
-    //for (int n=0; n<n_measure; n++) {
-    //    cout << n << endl;
-    //    for (int k=0; k<crbm.n_l; k++) {
-    //    
-    //        S0[k] = data_S(n,k);
-    //    }
-
-    //    for (int j=0; j<crbm.n_v; j++) {
-    //        
-    //        E0[j] = data_E(n,j);
-    //    }
-
-
-    //    accuracy = crbm.decode(random,TC,E0,S0);
-    //    S_percent += accuracy[0];
-    //    
-    //    E_percent += accuracy[1];    
-    //}
-
-    //S_percent /= n_measure;
-    //E_percent /= n_measure;
-    //fout << p << "  " << "S   " << "E" << endl;
-    //fout << S_percent << "    " << E_percent << endl; 
-    //fout.close();
-    //cout << endl << endl << endl;
-    //cout << "Syndrome Accuracy: " << S_percent << endl;
-    //cout << "Correction Accuracy: " << E_percent << endl;
-    //
-    //
-    //
-    ////cout << "\n\n Training... \n\n";
-
-        //
-    //clock_t end = clock();
-    //double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-    //cout << "Elementwise elapse time: " << elapsed_secs << endl << endl;
- 
-    
+     
 }

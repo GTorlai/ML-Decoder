@@ -49,10 +49,10 @@ string buildBaseName(const string& network, const string& model,
     baseName += "_nH";
     if (network.compare("DBN") == 0) {
         
-        for (int l=0; l<par["l"]; ++l) {
+        for (int l=1; l<par["l"]+1; ++l) {
             string hid = "nH" + boost::str(boost::format("%d") % l);
+            baseName += "-";
             baseName += boost::str(boost::format("%.0f") % par[hid]);
-            baseName += "_";
         }
     }
     else {
@@ -154,8 +154,6 @@ vector<Eigen::MatrixXd> loadDataset(int size, string id,
 
     return dataset;
 }
-
-
 
 
 //*****************************************************************************

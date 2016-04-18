@@ -33,8 +33,10 @@ class crbm {
         VectorXd dD;
         
         // Constructor
-        crbm(MTRand & random, map<string,float>& parameters);
+        crbm(MTRand & random, map<string,float>& parameters,
+             int nV,int nH,int nL);
         //crbm(MTRand & random);
+        
         // Sample functions
         MatrixXd hidden_activation(const MatrixXd & v_state,
                                    const MatrixXd & l_state);

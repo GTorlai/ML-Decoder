@@ -1,14 +1,9 @@
 #ifndef RBM_H
 #define RBM_H
 
-//#include <vector>
-//#include <fstream>
 #include <stdio.h>
 #include <math.h>
-//#include <iostream>
 #include <stdlib.h>
-//#include "MersenneTwister.h"
-//#include <Eigen/Core>
 #include "decoder.cpp"
 
 using namespace std;
@@ -20,7 +15,6 @@ class rbm {
         
         // RBM Parameters
         int epochs;
-        int mini_batch_size;
         int batch_size;
         int CD_order;
         int n_h;
@@ -37,7 +31,7 @@ class rbm {
         VectorXd dC;
         
         // Constructor
-        rbm(MTRand & random);
+        rbm(MTRand & random, map<string,float>& parameters,int nV, int nH);
         
         // Sample functions
         MatrixXd hidden_activation(MatrixXd v_state);
@@ -53,11 +47,12 @@ class rbm {
         void training_sweep(MTRand & random, MatrixXd batch);
  
         // Utilities
+        void saveParameters(string& modelName);
+        void loadParameters(string& modelName);
         double reconstruction_error(MatrixXd data, MatrixXd h_state);
-        void printM(MatrixXd matrix);
-        void printM_file(MatrixXd matrix, ofstream & file);
         MatrixXd sigmoid(MatrixXd matrix); 
         MatrixXd MC_sampling(MTRand & random, MatrixXd activation);
+        void printNetwork();
 
 };
 

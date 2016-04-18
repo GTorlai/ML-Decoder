@@ -5,4 +5,3 @@ data/*
 *.py
 tests
 scripts
-*dbn*

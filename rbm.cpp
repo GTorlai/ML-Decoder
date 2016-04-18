@@ -4,17 +4,17 @@
 // Constructor 
 //***********************************************************************
 
-rbm::rbm(MTRand & random) {
+rbm::rbm(MTRand& random, map<string,float>& parameters,int nV, int nH) 
+{
+    
+    epochs        = int(parameters["ep"]);
+    batch_size    = int(parameters["bs"]);
+    learning_rate = parameters["lr"];
+    L2_par        = parameters["L2"];
+    CD_order      = int(parameters["CD"]);
+    n_v = nV;
+    n_h = nH;
 
-    epochs = 1;
-    batch_size=1000;
-    learning_rate  = 0.01;
-    CD_order = 1;
-    L2_par = 0.0;
-    
-    n_h = 4;
-    n_v = 16;
-    
     W.setZero(n_h,n_v);
     b.setZero(n_v);
     c.setZero(n_h);
@@ -34,7 +34,9 @@ rbm::rbm(MTRand & random) {
             W(i,j) = 2.0 * r - bound;
         }
     }
+    printNetwork();
 }
+
 
 
 //***********************************************************************
@@ -169,8 +171,8 @@ void rbm::CD_k(MTRand & random, MatrixXd batch) {
     //cout << "Reconstruction Error: " << rec_err << endl;
 
     W += + (learning_rate/batch_size) * dW;
-    //b += + (learning_rate/batch_size) * dB;
-    //c += + (learning_rate/batch_size) * dC;
+    b += + (learning_rate/batch_size) * dB;
+    c += + (learning_rate/batch_size) * dC;
     
 }
 
@@ -191,8 +193,6 @@ void rbm::train(MTRand & random, MatrixXd dataset) {
             CD_k(random,batch);
         } 
     }
-    
-    cout << endl << (W(0,0)) << endl;
 }
 
 
@@ -234,9 +234,68 @@ void rbm::sample(MTRand & random,ofstream & output) {
             h_state = sample_hidden(random,v_state);
         }
         
-        printM_file(v_state,output);
+        write(output,v_state);
+        //printM_file(v_state,output);
     }
 }
+
+//*****************************************************************************
+// Save the Network Parameters
+//*****************************************************************************
+
+void rbm::loadParameters(string& modelName) 
+{
+        
+    ifstream file(modelName);
+
+    for (int i=0; i<n_h;i++) {
+        for (int j=0; j<n_v; j++) {
+            file >> W(i,j);
+        }
+    }
+    
+    for (int j=0; j<n_v; j++) {
+        file >> b(j);
+    }
+    
+    for (int i=0; i<n_h; i++) {
+        file >> c(i);
+    }
+   
+}
+
+//*****************************************************************************
+// Save the Network Parameters
+//*****************************************************************************
+
+void rbm::saveParameters(string& modelName) 
+{
+
+    ofstream file(modelName);
+
+    for (int i=0; i<n_h;i++) {
+        for (int j=0; j<n_v; j++) {
+            file << W(i,j) << " ";
+        }
+        file << endl;
+    }
+
+    file << endl << endl;
+
+    for (int j=0; j<n_v; j++) {
+        file << b(j) << " ";
+    }
+    
+    file << endl << endl;
+
+    for (int i=0; i<n_h; i++) {
+        file << c(i) << " ";
+    }
+    
+    file.close(); 
+
+}
+
 
 
 //***********************************************************************
@@ -316,36 +375,24 @@ MatrixXd rbm::sigmoid(MatrixXd matrix) {
 }
 
 
-//***********************************************************************
-// Constructor 
-//***********************************************************************
+//*****************************************************************************
+// Print Network Informations
+//*****************************************************************************
 
-void rbm::printM(MatrixXd matrix) {
+void rbm::printNetwork() 
+{
+
+    cout << "\n\n******************************\n\n" << endl;
+    cout << "RESTRICTED BOLTZMANN MACHINE\n\n";
+    cout << "Machine Parameter\n\n";
+    cout << "\tNumber of Visible Units: " << n_v << "\n";
+    cout << "\tNumber of Hidden Units: " << n_h << "\n";
+    cout << "\nHyper-parameters\n\n";
+    cout << "\tLearning Rate: " << learning_rate << "\n";
+    cout << "\tEpochs: " << epochs << "\n";
+    cout << "\tBatch Size: " << batch_size << "\n";
+    cout << "\tL2 Regularization: " << L2_par << "\n";
+
     
-    for(int i=0; i< matrix.rows(); i++) {
-        for(int j=0;j<matrix.cols(); j++) {
-
-            cout << matrix(i,j) << " ";
-        }
-        cout << endl;
-    }
-
+ 
 }
-
-
-//***********************************************************************
-// Constructor 
-//***********************************************************************
-
-void rbm::printM_file(MatrixXd matrix, ofstream & file) {
-    
-    for(int i=0; i< matrix.rows(); i++) {
-        for(int j=0;j<matrix.cols(); j++) {
-
-            file << matrix(i,j) << " ";
-        }
-        file << endl;
-    }
-
-}
-

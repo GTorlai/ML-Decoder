@@ -5,7 +5,8 @@
 // Constructor 
 //*****************************************************************************
 
-crbm::crbm(MTRand & random, map<string,float>& parameters) 
+crbm::crbm(MTRand & random, map<string,float>& parameters,
+           int nV, int nH, int nL) 
 {
 
     epochs        = int(parameters["ep"]);
@@ -13,9 +14,9 @@ crbm::crbm(MTRand & random, map<string,float>& parameters)
     learning_rate = parameters["lr"];
     L2_par        = parameters["L2"];
     CD_order      = int(parameters["CD"]);
-    n_v = int(parameters["nV"]);
-    n_h = int(parameters["nH"]);
-    n_l = int(parameters["nL"]);
+    n_v = nV;
+    n_h = nH;
+    n_l = nL;
 
 //crbm::crbm(MTRand & random) {
 // 
@@ -48,6 +49,8 @@ crbm::crbm(MTRand & random, map<string,float>& parameters)
             U(i,k) = 2.0 * r - bound_l;
         }
     }
+    
+    printNetwork();
 }
 
 
@@ -263,14 +266,13 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V,
             batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
             batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
             CD_k(random,batch_V,batch_L);
-            cout << W(0,0) << endl;
         } 
     }
 }
 
 
 //*****************************************************************************
-// Save the Network Parameters
+// Load the Network Parameters
 //*****************************************************************************
 
 void crbm::loadParameters(string& modelName) 
@@ -368,7 +370,6 @@ vector<double> crbm::decode(MTRand & random, Decoder & TC,
     MatrixXd h_state(batch_size,n_h);
     MatrixXd v_state(batch_size,n_v);
     MatrixXd l_state(batch_size,n_l);
-    //MatrixXi E(batch_size,n_v); 
 
     vector<int> E;
     vector<int> C;
@@ -416,15 +417,17 @@ vector<double> crbm::decode(MTRand & random, Decoder & TC,
 
             for (int j=0; j<n_v; j++) {
 
-                E[j] = v_state(0,j);
+                E[j] = int(v_state(0,j));
             }
             
             S_status = TC.syndromeCheck(E0,E);
+
             if (S_status == 0) {
                 compatible++;
 
                 C = TC.getCycle(E0,E);
                 C_status = TC.getLogicalState(C);
+                
                 if (C_status == 0) {
                     corrected++;
                 }
