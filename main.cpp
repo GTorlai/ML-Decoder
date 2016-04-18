@@ -5,7 +5,9 @@
 #include "dbn.cpp"
 
 int main(int argc, char* argv[]) {
-    
+   
+    setNbThreads(8);
+
     map<string,string> Helper;
     map<string,float> Parameters;
     
@@ -42,7 +44,10 @@ int main(int argc, char* argv[]) {
 
     MTRand random(1234);
     
+    //clock_t begin = clock();
+ 
     if (command.compare("train") == 0) {
+        
         
         int size = 200000;
 
@@ -62,7 +67,7 @@ int main(int argc, char* argv[]) {
             //crbm.printNetwork();
             string modelName = buildModelName(network,model,Parameters);
             crbm.train(random,data_E,data_S); 
-            //crbm.saveParameters(modelName); 
+            crbm.saveParameters(modelName); 
         }
         if (network.compare("DBN") == 0) {
 
@@ -72,5 +77,10 @@ int main(int argc, char* argv[]) {
             dbn.saveParameters(modelName);
         } 
     }
+    
+    //clock_t end = clock();
+    //double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+    //cout << "Elementwise elapse time: " << elapsed_secs << endl << endl;
+
      
 }

@@ -135,6 +135,87 @@ MatrixXd dbn::topDownInference(MTRand& random, MatrixXd& hTop)
 }
 
 
+//*****************************************************************************
+// Perform Error Correction
+//*****************************************************************************
+
+vector<double> dbn::decode(MTRand& random, Decoder& TC,
+                           vector<int>& E0, vector<int>& S0){
+
+    batch_size = 1;
+
+    MatrixXd h_top(batch_size,crbms[0].n_h);
+    MatrixXd v_state(batch_size,rbms[0].n_v);
+    MatrixXd l_state(batch_size,crbms[0].n_l);
+
+    vector<int> E;
+    vector<int> C;
+    E.assign(rbms[0].n_v,0);
+    C.assign(rbms[0].n_v,0);
+
+    //l_state.setZero(batch_size,n_l);
+
+    for(int s=0; s<batch_size; s++) { 
+        for (int i=0; i<crbms[0].n_h; i++) {
+            h_top(s,i) = random.randInt(1);
+        }
+    }
+    
+    for (int k=0; k<crbms[0].n_l; k++) {
+        l_state(0,k) = S0[k];
+    }
+
+    int n_measure = 100;
+    int n_frequency = 2;
+    int eq = 2000;
+
+    int corrected = 0;
+    int compatible = 0;
+    int S_status;
+    int C_status;
+
+    h_top = equilibrateTop(random,eq,h_top);
+
+    //E = v_state.cast <int> ();
+    do {
+        for (int k=0;k<n_measure; k++) {
+
+            h_top = equilibrateTop(random,n_frequency,h_top);
+            
+            v_state = topDownInference(random,h_top);
+
+            for (int j=0; j<rbms[0].n_v; j++) {
+
+                E[j] = int(v_state(0,j));
+            }
+            
+            S_status = TC.syndromeCheck(E0,E);
+
+            if (S_status == 0) {
+                compatible++;
+
+                C = TC.getCycle(E0,E);
+                C_status = TC.getLogicalState(C);
+                
+                if (C_status == 0) {
+                    corrected++;
+                }
+            }
+
+        } 
+    } while (compatible == 0);
+    
+    //cout << "Syndrome Accuracy: ";
+    //cout << 100.0*compatible/(1.0*n_measure) << "%\t";
+    //cout << "Correction Accuracy: ";
+    //cout <<  100.0*corrected/(1.0*compatible) << "%" << endl; 
+    vector<double> accuracy;
+    accuracy.push_back(100.0*compatible/(1.0*n_measure));
+    accuracy.push_back(100.0*corrected/(1.0*compatible));
+
+    return accuracy;
+}
+
 
 //*****************************************************************************
 // Load the Network Parameters
