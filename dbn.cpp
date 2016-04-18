@@ -12,13 +12,13 @@ dbn::dbn(MTRand & random, map<string,float>& Parameters)
     
     rbms.push_back(rbm(random,Parameters,Parameters["nV"],Parameters["nH1"]));
     
-    for (int l=2; l<layers; ++l) {
+    if (layers>2) { 
+        for (int l=2; l<layers; ++l) {
         
-        //random.seed();
-        //RanGen.push_back(random);
-        string vis = "nH" + boost::str(boost::format("%d") % (l-1)); 
-        string hid = "nH" + boost::str(boost::format("%d") % l);
-        rbms.push_back(rbm(random,Parameters,Parameters[vis],Parameters[hid]));
+            string vis = "nH" + boost::str(boost::format("%d") % (l-1)); 
+            string hid = "nH" + boost::str(boost::format("%d") % l);
+            rbms.push_back(rbm(random,Parameters,Parameters[vis],Parameters[hid]));
+        }
     }
     
     string vis = "nH" + boost::str(boost::format("%d") % (layers-1)); 
@@ -72,6 +72,7 @@ void dbn::Train(MTRand & random, const MatrixXd& data_E,
     
     for (int l=1; l<layers; ++l) {
         
+        cout << endl << "***************************" << endl; 
         cout << "Training RBM " << l << ".." << endl;
         rbms[l-1].train(random,oldDataset);
 
@@ -143,6 +144,13 @@ vector<double> dbn::decode(MTRand& random, Decoder& TC,
                            vector<int>& E0, vector<int>& S0){
 
     batch_size = 1;
+    crbms[0].batch_size = batch_size;
+    
+    for (int l=1; l<layers; ++l) {
+
+        rbms[l-1].batch_size = batch_size;
+    }
+
 
     MatrixXd h_top(batch_size,crbms[0].n_h);
     MatrixXd v_state(batch_size,rbms[0].n_v);
@@ -156,12 +164,12 @@ vector<double> dbn::decode(MTRand& random, Decoder& TC,
     //l_state.setZero(batch_size,n_l);
 
     for(int s=0; s<batch_size; s++) { 
-        for (int i=0; i<crbms[0].n_h; i++) {
+        for (int i=0; i<int(crbms[0].n_h); i++) {
             h_top(s,i) = random.randInt(1);
         }
     }
     
-    for (int k=0; k<crbms[0].n_l; k++) {
+    for (int k=0; k<int(crbms[0].n_l); k++) {
         l_state(0,k) = S0[k];
     }
 
@@ -212,7 +220,6 @@ vector<double> dbn::decode(MTRand& random, Decoder& TC,
     vector<double> accuracy;
     accuracy.push_back(100.0*compatible/(1.0*n_measure));
     accuracy.push_back(100.0*corrected/(1.0*compatible));
-
     return accuracy;
 }
 

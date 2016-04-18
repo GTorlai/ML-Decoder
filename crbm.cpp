@@ -248,91 +248,6 @@ void crbm::CD_k(MTRand & random, const MatrixXd & batch_V,
     
 }
 
-//void crbm::CD_k(MTRand & random, const MatrixXd & batch_V, 
-//                                 const MatrixXd & batch_L) 
-//{
-//    
-//    double rec_err;
-//    
-//    MatrixXd d_w;
-//    VectorXd d_b;
-//    VectorXd d_c;
-//    MatrixXd d_u;
-//    VectorXd d_d;
-//    d_w.setZero(n_h,n_v);
-//    d_u.setZero(n_h,n_l);
-//    d_b.setZero(n_v);
-//    d_c.setZero(n_h);
-//    d_d.setZero(n_l);
-//
-//    MatrixXd h_activation(batch_size,n_h);
-//    
-//    MatrixXd h_state(batch_size,n_h);
-//    MatrixXd v_state(batch_size,n_v);
-//    MatrixXd l_state(batch_size,n_l);
-//
-//    VectorXd h(n_h);
-//    VectorXd v(n_v);
-//    VectorXd l(n_l);
-//
-//    //dW.setZero(n_h,n_v);
-//    //dU.setZero(n_h,n_l);
-//    //dB.setZero(n_v);
-//    //dC.setZero(n_h);
-//    //dD.setZero(n_l);
-//
-//    h_state = sample_hidden(random,batch_V,batch_L);
-//    h_activation = hidden_activation(batch_V,batch_L);
-//    int s;
-//    int chunk=5;
-//
-//    #pragma omp declare \
-//    reduction(MatrixSum : MatrixXd : MatrixXd::operator+))//\: MatrixBase<Derived>)
-//
-//    #pragma omp parallel for private(s,h,v,l) \
-//    schedule(static,chunk) reduction(+:d_w)//,d_u,d_b,d_c,d_d)
-//    for (int s=0; s<batch_size; s++) {
-//        //h = h_state.row(s);
-//        h = h_activation.row(s);
-//        v = batch_V.row(s);
-//        l = batch_L.row(s);
-//        d_w += h*v.transpose();
-//        //d_u += h*l.transpose();
-//        //d_b += v;
-//        //d_c += h;
-//        //d_d += l;
-//    } 
-//    
-//    for (int k=0; k<CD_order; k++) {
-//
-//        v_state = sample_visible(random,h_state);
-//        l_state = sample_label(random,h_state);
-//        h_state = sample_hidden(random,v_state,l_state);
-//    }
-//
-//    h_activation = hidden_activation(v_state,l_state);
-//    
-//    //#pragma omp parallel for private(h,v,l) reduction(+:dW,dU,dB,dC,dD) 
-//    for (int s=0; s<batch_size; s++) {
-//        //h = h_state.row(s);
-//        h = h_activation.row(s);
-//        v = v_state.row(s);
-//        l = l_state.row(s);
-//        d_w += - h*v.transpose();
-//        d_u += - h*l.transpose();
-//        d_b += -v;
-//        d_c += -h;
-//        d_d += -l;
-//    } 
-//    
-//    W += + (learning_rate/batch_size) * (d_w + L2_par*W);
-//    U += + (learning_rate/batch_size) * (d_u + L2_par*U);
-//    b += + (learning_rate/batch_size) * d_b;
-//    c += + (learning_rate/batch_size) * d_c;
-//    d += + (learning_rate/batch_size) * d_d;
-//    
-//}
-
 
 //*****************************************************************************
 // Train the Boltzmann Machine
@@ -353,7 +268,6 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V,
             batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
             CD_k(random,batch_V,batch_L);
         }
-        cout << endl << W(0,0) << endl;
     }
 }
 

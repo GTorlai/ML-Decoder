@@ -97,6 +97,27 @@ string buildModelName(const string& network, const string& model,
 }
 
 //*****************************************************************************
+// Generate the Name of the output file
+//*****************************************************************************
+
+string buildAccuracyName(const string& network, const string& model,
+                     map<string,float>& par) 
+{
+    
+    int L = int(sqrt(par["nV"]/2));
+    string accuracyName = "data/observables/L";
+    accuracyName += boost::str(boost::format("%d") % L);
+    accuracyName += "/";
+    accuracyName += buildBaseName(network,model,par); 
+    accuracyName += "_p";
+    accuracyName += boost::str(boost::format("%.3f") % par["p"]);
+    accuracyName += "_Accuracy.txt";
+ 
+    return accuracyName;
+}
+
+
+//*****************************************************************************
 // Load datasets 
 //*****************************************************************************
 
@@ -156,6 +177,20 @@ vector<Eigen::MatrixXd> loadDataset(int size, string id,
 }
 
 
+//*****************************************************************************
+// Print Matrix or Vector on the screen
+//*****************************************************************************
+
+
+void printProgressBar(int iter, int total) {
+    
+    
+    if (iter == 0) {
+        cout << endl;
+        cout << "__________________________________________________"
+    }
+
+}
 //*****************************************************************************
 // Print Matrix or Vector on the screen
 //*****************************************************************************
