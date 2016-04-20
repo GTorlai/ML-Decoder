@@ -19,7 +19,9 @@ class crbm {
         int n_l;
         float L2_par;
         float learning_rate;
-        
+        float alpha;
+        string CD_type;
+
         MatrixXd W;
         MatrixXd U;
         VectorXd b;
@@ -31,11 +33,12 @@ class crbm {
         VectorXd dB;
         VectorXd dC;
         VectorXd dD;
+
+        MatrixXd Persistent;
         
         // Constructor
         crbm(MTRand & random, map<string,float>& parameters,
              int nV,int nH,int nL);
-        //crbm(MTRand & random);
         
         // Sample functions
         MatrixXd hidden_activation(const MatrixXd & v_state,
@@ -49,12 +52,13 @@ class crbm {
         MatrixXd sample_label(MTRand & random, const MatrixXd & h_state);
 
         // Core Functions
-        void CD_k(MTRand & random, const MatrixXd& batch_V, 
-                                   const MatrixXd& batch_L);
- 
+        void CD(MTRand & random, const MatrixXd& batch_V, 
+                                 const MatrixXd& batch_L);
+        
         void train(MTRand & random, const MatrixXd& dataset_V, 
-                                    const MatrixXd& dataset_L);
-        vector<double> decode(MTRand & random, Decoder & TC, 
+                                               const MatrixXd& dataset_L);
+        
+        double decode(MTRand & random, Decoder & TC, 
                         MatrixXd& testSet_E, MatrixXd& testSet_S);
 
         // Utilities

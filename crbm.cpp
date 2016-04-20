@@ -14,21 +14,23 @@ crbm::crbm(MTRand & random, map<string,float>& parameters,
     batch_size    = int(parameters["bs"]);
     learning_rate = parameters["lr"];
     L2_par        = parameters["L2"];
-    CD_order      = int(parameters["CD"]);
+    
+    if (int(parameters["PCD"]) != 0) {
+        CD_order = int(parameters["PCD"]);
+        CD_type = "persistent"; 
+    }
+    
+    else {
+        CD_order = int(parameters["CD"]);
+        CD_type = "default";
+    }
+
+    alpha = 0.9;
     n_v = nV;
     n_h = nH;
     n_l = nL;
-
-//crbm::crbm(MTRand & random) {
-//      
-//    batch_size=100;
-//    learning_rate  = 0.01;
-//    CD_order = 15;
-//    L2_par = 0.001;
-//    epochs = 1; 
-//    n_h = 64;
-//    n_v = 32;
-//    n_l = 16;
+    
+    Persistent.setZero(batch_size,n_h);
 
     W.setZero(n_h,n_v);
     U.setZero(n_h,n_l);
@@ -182,12 +184,9 @@ MatrixXd crbm::sample_label(MTRand & random, const MatrixXd & h_state)
 // Perform one step of Contrastive Divergence
 //*****************************************************************************
 
-void crbm::CD_k(MTRand & random, const MatrixXd & batch_V, 
-                                 const MatrixXd & batch_L) 
+void crbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) 
 {
     
-    double rec_err;
-
     MatrixXd h_activation(batch_size,n_h);
     
     MatrixXd h_state(batch_size,n_h);
@@ -203,12 +202,19 @@ void crbm::CD_k(MTRand & random, const MatrixXd & batch_V,
     dB.setZero(n_v);
     dC.setZero(n_h);
     dD.setZero(n_l);
+    
+    if (CD_type.compare("persistent") == 0) {
+        h_state = Persistent;
+    }
+    
+    else {
+        h_state = sample_hidden(random,batch_V,batch_L);
+    
+    }
 
-    h_state = sample_hidden(random,batch_V,batch_L);
     h_activation = hidden_activation(batch_V,batch_L);
     
     for (int s=0; s<batch_size; s++) {
-        //h = h_state.row(s);
         h = h_activation.row(s);
         v = batch_V.row(s);
         l = batch_L.row(s);
@@ -229,7 +235,6 @@ void crbm::CD_k(MTRand & random, const MatrixXd & batch_V,
     h_activation = hidden_activation(v_state,l_state);
     
     for (int s=0; s<batch_size; s++) {
-        //h = h_state.row(s);
         h = h_activation.row(s);
         v = v_state.row(s);
         l = l_state.row(s);
@@ -240,12 +245,16 @@ void crbm::CD_k(MTRand & random, const MatrixXd & batch_V,
         dD += -l;
     } 
     
-    W += + (learning_rate/batch_size) * (dW + L2_par*W);
-    U += + (learning_rate/batch_size) * (dU + L2_par*U);
-    b += + (learning_rate/batch_size) * dB;
-    c += + (learning_rate/batch_size) * dC;
-    d += + (learning_rate/batch_size) * dD;
+    W = alpha*W + (learning_rate/batch_size) * (dW + L2_par*W);
+    U = alpha*U + (learning_rate/batch_size) * (dU + L2_par*U);
+    b = alpha*b + (learning_rate/batch_size) * dB;
+    c = alpha*c + (learning_rate/batch_size) * dC;
+    d = alpha*d + (learning_rate/batch_size) * dD;
     
+    if (CD_type.compare("persistent") == 0) {
+        Persistent = h_state;
+    }
+ 
 }
 
 
@@ -254,21 +263,26 @@ void crbm::CD_k(MTRand & random, const MatrixXd & batch_V,
 //*****************************************************************************
 
 void crbm::train(MTRand & random, const MatrixXd & dataset_V, 
-                                  const MatrixXd & dataset_L) 
+                                             const MatrixXd & dataset_L) 
 {
 
     int n_batches = dataset_V.rows() / batch_size;
     MatrixXd batch_V(batch_size,n_v);
     MatrixXd batch_L(batch_size,n_l);
+    
+    if (CD_type.compare("persistent") == 0) {
+        Persistent = sample_hidden(random,batch_V,batch_L); 
+    }
 
     for (int e=0; e<epochs; e++) {
         cout << "Epoch: " << e << endl;
         for (int b=0; b< n_batches; b++) {
             batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
             batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
-            CD_k(random,batch_V,batch_L);
+            CD(random,batch_V,batch_L);
         }
     }
+    
 }
 
 
@@ -276,7 +290,7 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V,
 // Perform Error Correction
 //*****************************************************************************
 
-vector<double> crbm::decode(MTRand & random, Decoder & TC, 
+double crbm::decode(MTRand & random, Decoder & TC, 
                             MatrixXd& testSet_E, MatrixXd& testSet_S) 
 {
     //int size = testSet_E.rows();
@@ -351,11 +365,12 @@ vector<double> crbm::decode(MTRand & random, Decoder & TC,
         //else cout << " -> FAILED" << endl;
     }
         
-    vector<double> accuracy;
-    accuracy.push_back(1.0*counter/(1.0*size));
-    accuracy.push_back(100.0*corrected/(1.0*size));
+    //vector<double> accuracy;
+    //accuracy.push_back(1.0*counter/(1.0*size));
+    //accuracy.push_back(100.0*corrected/(1.0*size));
+    double LogicalError = 100.0*(1.0-corrected/(1.0*size));
 
-    return accuracy;
+    return LogicalError;
 }
 
 
@@ -513,8 +528,16 @@ void crbm::printNetwork()
     cout << "\tEpochs: " << epochs << "\n";
     cout << "\tBatch Size: " << batch_size << "\n";
     cout << "\tL2 Regularization: " << L2_par << "\n";
-
+    cout << "\tMomentum: " << alpha << "\n"; 
+    if (CD_type.compare("persistent") == 0) {
+        cout << "\tL2 Optimization: Persistent Constrastive Divergence" << "\n";
+        cout << "\tPCD order: " << CD_order << "\n";
+    }
     
- 
+    if (CD_type.compare("default") == 0) {
+        cout << "\tL2 Optimization: Constrastive Divergence" << "\n";
+        cout << "\tCD order: " << CD_order << "\n";
+    }
+
 }
 

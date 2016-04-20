@@ -11,6 +11,7 @@ int main(int argc, char* argv[]) {
     map<string,string> Helper;
     map<string,float> Parameters;
     
+    initializeParameters(Parameters); 
     string model = "TC2d";
     string command = argv[1];
     string network = argv[2];
@@ -41,23 +42,28 @@ int main(int argc, char* argv[]) {
     get_option("CD","Contrastive Divergence",argc,argv,Parameters,Helper);
     get_option("ep","Training Epochs",argc,argv,Parameters,Helper);
     get_option("bs","Batch Size",argc,argv,Parameters,Helper);
-
+    get_option("PCD","Persistent Contrastive Divergence",argc,argv,Parameters,Helper);
+    
     MTRand random(1234);
     
     //clock_t begin = clock();
+    
+    int L = int(sqrt(Parameters["nV"]/2));
+    Decoder TC(L);
  
     if (command.compare("train") == 0) {
         
         
-        int size = 200000;
+        int train_size = 200000;
 
         vector<MatrixXd> dataset(2);
-        MatrixXd data_E(size,int(Parameters["nV"]));
-        MatrixXd data_S(size,int(Parameters["nL"]));
+        MatrixXd train_E(train_size,int(Parameters["nV"]));
+        MatrixXd train_S(train_size,int(Parameters["nL"]));
+ 
+        dataset = loadDataset(train_size,"Train",Parameters);
+        train_E = dataset[0];
+        train_S = dataset[1];
         
-        dataset = loadDataset(size,"Train",Parameters);
-        data_E = dataset[0];
-        data_S = dataset[1];
         if (network.compare("CRBM") == 0) {
             
             crbm crbm(random,Parameters, int(Parameters["nV"]),
@@ -66,14 +72,15 @@ int main(int argc, char* argv[]) {
 
             //crbm.printNetwork();
             string modelName = buildModelName(network,model,Parameters);
-            crbm.train(random,data_E,data_S); 
+            crbm.train(random,train_E,train_S); 
             crbm.saveParameters(modelName); 
         }
+        
         if (network.compare("DBN") == 0) {
 
             string modelName = buildModelName(network,model,Parameters);
             dbn dbn(random,Parameters);
-            dbn.Train(random,data_E,data_S);
+            dbn.Train(random,train_E,train_S);
             dbn.saveParameters(modelName);
         } 
     }
@@ -90,16 +97,16 @@ int main(int argc, char* argv[]) {
         dataset = loadDataset(size,set,Parameters);
         data_E = dataset[0];
         data_S = dataset[1];
-        int L = int(sqrt(Parameters["nV"]/2));
-        Decoder TC(L);
+        //int L = int(sqrt(Parameters["nV"]/2));
+        //Decoder TC(L);
 
         string modelName = buildModelName(network,model,Parameters);
         string accuracyName = buildAccuracyName(network,model,Parameters,set); 
         
         ofstream fout(accuracyName);
         
-        vector<double> accuracy(2);
- 
+        double LogicalError;
+
         if (network.compare("CRBM") == 0) {
             
             crbm crbm(random,Parameters, int(Parameters["nV"]),
@@ -109,21 +116,21 @@ int main(int argc, char* argv[]) {
             
             crbm.loadParameters(modelName); 
             
-            accuracy = crbm.decode(random,TC,data_E,data_S);
+            LogicalError = crbm.decode(random,TC,data_E,data_S);
         } 
         
         if (network.compare("DBN") == 0) {
             
-            dbn dbn(random,Parameters);
-            
-            dbn.loadParameters(modelName); 
-            
-            accuracy = dbn.decode(random,TC,data_E,data_S);
+            //dbn dbn(random,Parameters);
+            //
+            //dbn.loadParameters(modelName); 
+            //
+            //LogicalError = dbn.decode(random,TC,data_E,data_S);
         } 
  
 
         fout << Parameters["p"] << "    ";
-        fout << accuracy[0] << "    " << accuracy[1] << endl; 
+        fout << LogicalError << endl; 
         
         fout.close();
 

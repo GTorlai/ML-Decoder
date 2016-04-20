@@ -17,6 +17,25 @@ using namespace std;
 // Get command line options
 //*****************************************************************************
 
+void initializeParameters(map<string,float>& par) 
+{
+    par["nV"] = 0;
+    par["nH"] = 0;
+    par["nL"] = 0;
+    par["lr"] = 0;
+    par["L2"] = 0;
+    par["CD"] = 0;
+    par["PCD"] = 0;
+    par["l"] = 0;
+    par["ep"] = 0;
+    par["bs"] = 0;
+
+}
+
+//*****************************************************************************
+// Get command line options
+//*****************************************************************************
+
 void get_option(const string& arg, const string& description,
                 int argc, char** argv, 
                 map<string,float>& par, map<string,string>& helper)
