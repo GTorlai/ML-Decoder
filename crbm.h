@@ -55,7 +55,7 @@ class crbm {
         void train(MTRand & random, const MatrixXd& dataset_V, 
                                     const MatrixXd& dataset_L);
         vector<double> decode(MTRand & random, Decoder & TC, 
-                              vector<int>  E, vector<int>  S);
+                        MatrixXd& testSet_E, MatrixXd& testSet_S);
 
         // Utilities
         void loadParameters(string& modelName);

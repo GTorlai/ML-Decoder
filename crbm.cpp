@@ -277,88 +277,83 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V,
 //*****************************************************************************
 
 vector<double> crbm::decode(MTRand & random, Decoder & TC, 
-                            vector<int> E0, vector<int> S0) 
+                            MatrixXd& testSet_E, MatrixXd& testSet_S) 
 {
-    
+    //int size = testSet_E.rows();
+    int size = 10000;
     batch_size = 1;
+    int n_frequency = 10;
+    int eq = 1000;
+    
+    int corrected = 0;
+    int S_status;
+    int C_status;
+    int counter=0;
 
     MatrixXd h_state(batch_size,n_h);
     MatrixXd v_state(batch_size,n_v);
     MatrixXd l_state(batch_size,n_l);
-
+    
     vector<int> E;
+    vector<int> E0;
     vector<int> C;
     E.assign(n_v,0);
+    E0.assign(n_v,0);
     C.assign(n_v,0);
 
-    l_state.setZero(batch_size,n_l);
-
-    for(int s=0; s<batch_size; s++) { 
-        for (int j=0; j<n_v; j++) {
-            v_state(s,j) = random.randInt(1);
-        }
-        for (int i=0; i<n_h; i++) {
-            h_state(s,i) = random.randInt(1);
-        }
-    }
-    
-    for (int k=0; k<n_l; k++) {
-        l_state(0,k) = S0[k];
-    }
-
-    int n_measure = 100;
-    int n_frequency = 2;
-    int eq = 2000;
-    
-    int corrected = 0;
-    int compatible = 0;
-    int S_status;
-    int C_status;
-
-    for (int k=0;k<eq; k++) {
+    for (int s=0; s<size; ++s) {
         
-        h_state = sample_hidden(random,v_state,l_state);  
-        v_state = sample_visible(random,h_state);
-    }
+        //cout << s; 
+        for (int j=0; j<n_v; ++j) {
+            
+            v_state(0,j) = random.randInt(1);
+            E0[j] = int(testSet_E(s,j));
+        }
+        
+        for (int k=0; k<n_l; ++k) {
+            
+            l_state(0,k) = testSet_S(s,k);
+        }
 
-    //E = v_state.cast <int> ();
-    do {
-        for (int k=0;k<n_measure; k++) {
-
-            for(int i=0; i<n_frequency; i++) {
+        for (int n=0; n<eq; ++n) {
+        
+            h_state = sample_hidden(random,v_state,l_state);  
+            v_state = sample_visible(random,h_state);
+        }
+        
+         
+        do {
+            
+            for(int i=0; i<n_frequency; ++i) {
             
                 h_state = sample_hidden(random,v_state,l_state);
                 v_state = sample_visible(random,h_state);
             }
             
-            for (int j=0; j<n_v; j++) {
-
+            for (int j=0; j<n_v; ++j) {
+                    
                 E[j] = int(v_state(0,j));
             }
-            
+ 
             S_status = TC.syndromeCheck(E0,E);
+            
+            counter++;
+            
+        } while (S_status != 0);
+        
+        C = TC.getCycle(E0,E);
+        C_status = TC.getLogicalState(C);
 
-            if (S_status == 0) {
-                compatible++;
-
-                C = TC.getCycle(E0,E);
-                C_status = TC.getLogicalState(C);
-                
-                if (C_status == 0) {
-                    corrected++;
-                }
-            }
-
-        } 
-    } while (compatible == 0);
-    
-    //cout << "Syndrome Accuracy: ";
-    //cout << 100.0*compatible/(1.0*n_measure) << "%\t";
-    //cout << "Correction Accuracy: ";
-    //cout <<  100.0*corrected/(1.0*compatible) << "%" << endl; 
+        if (C_status == 0) {
+            //cout << " -> CORRECTED" << endl;
+            corrected++;
+        }
+        //else cout << " -> FAILED" << endl;
+    }
+        
     vector<double> accuracy;
-    accuracy.push_back(100.0*compatible/(1.0*n_measure));
-    accuracy.push_back(100.0*corrected/(1.0*compatible));
+    accuracy.push_back(1.0*counter/(1.0*size));
+    accuracy.push_back(100.0*corrected/(1.0*size));
 
     return accuracy;
 }
@@ -522,9 +517,4 @@ void crbm::printNetwork()
     
  
 }
-
-
-
-
-
 

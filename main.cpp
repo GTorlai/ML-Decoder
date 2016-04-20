@@ -79,35 +79,26 @@ int main(int argc, char* argv[]) {
     }
     
     if (command.compare("decode") == 0) {
-        
-        int size = 10000;
-        int n_measure = 1000;
-        
-        vector<int> E0;
-        vector<int> S0;
-        E0.assign(int(Parameters["nV"]),0);
-        S0.assign(int(Parameters["nL"]),0);
-        vector<double> accuracy;
-        accuracy.assign(2,0);
-        double E_percent = 0.0;
-        double S_percent = 0.0;
- 
+
+        int size = 10000;   
+        string set = "Test";
+
         vector<MatrixXd> dataset(2);
         MatrixXd data_E(size,int(Parameters["nV"]));
         MatrixXd data_S(size,int(Parameters["nL"]));
         
-        dataset = loadDataset(size,"Test",Parameters);
+        dataset = loadDataset(size,set,Parameters);
         data_E = dataset[0];
         data_S = dataset[1];
         int L = int(sqrt(Parameters["nV"]/2));
-
         Decoder TC(L);
 
         string modelName = buildModelName(network,model,Parameters);
-        
-        string accuracyName = buildAccuracyName(network,model,Parameters); 
+        string accuracyName = buildAccuracyName(network,model,Parameters,set); 
         
         ofstream fout(accuracyName);
+        
+        vector<double> accuracy(2);
  
         if (network.compare("CRBM") == 0) {
             
@@ -115,72 +106,27 @@ int main(int argc, char* argv[]) {
                                          int(Parameters["nH"]),
                                          int(Parameters["nL"]));
             
-            crbm.loadParameters(modelName); 
- 
-            for (int n=0; n<n_measure; n++) {
             
-                //cout << n << endl;
-                
-                for (int k=0; k<int(Parameters["nL"]); k++) {
-                
-                    S0[k] = data_S(n,k);
-                }
-
-                for (int j=0; j<int(Parameters["nV"]); j++) {
-                    
-                    E0[j] = data_E(n,j);
-                }
-
-                accuracy = crbm.decode(random,TC,E0,S0);
-                
-                S_percent += accuracy[0];
-                E_percent += accuracy[1];    
+            crbm.loadParameters(modelName); 
+            
+            accuracy = crbm.decode(random,TC,data_E,data_S);
+        } 
         
-            }
-        
-        }
- 
-        else if (network.compare("DBN") == 0) {
+        if (network.compare("DBN") == 0) {
             
             dbn dbn(random,Parameters);
             
             dbn.loadParameters(modelName); 
             
-            for (int n=0; n<n_measure; n++) {
-            
-                //cout << n << endl;
-                
-                for (int k=0; k<int(Parameters["nL"]); k++) {
-                
-                    S0[k] = data_S(n,k);
-                }
-
-                for (int j=0; j<int(Parameters["nV"]); j++) {
-                    
-                    E0[j] = data_E(n,j);
-                }
-
-                accuracy = dbn.decode(random,TC,E0,S0);
-                
-                S_percent += accuracy[0];
-                E_percent += accuracy[1];    
-            }
-        }
-        //
-        S_percent /= n_measure;
-        E_percent /= n_measure;
-        //cout << endl << endl << endl;
-        //cout << "Syndrome Accuracy: " << S_percent << "%"<< endl;
-        //cout << "Correction Accuracy: " << E_percent << "%" << endl;
+            accuracy = dbn.decode(random,TC,data_E,data_S);
+        } 
  
-        fout << Parameters["p"] << "  " << "S   " << "E" << endl;
-        fout << S_percent << "    " << E_percent << endl; 
+
+        fout << Parameters["p"] << "    ";
+        fout << accuracy[0] << "    " << accuracy[1] << endl; 
         
         fout.close();
-    }
-    //clock_t end = clock();
-    //double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-    //cout << "Elementwise elapse time: " << elapsed_secs << endl << endl;
 
+    }     
      
 }

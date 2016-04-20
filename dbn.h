@@ -36,8 +36,8 @@ class dbn {
         
         void Train(MTRand& random, const MatrixXd& data_E, 
                                    const MatrixXd& data_S);
-        vector<double> decode(MTRand& random, Decoder& TC, vector<int>& E0,
-                                                           vector<int>& S0);
+        vector<double> decode(MTRand& random, Decoder& TC,
+                              MatrixXd& testSet_E, MatrixXd& testSet_S);
         void saveParameters(string& modelName);
         void loadParameters(string& modelName);
 
