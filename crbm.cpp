@@ -16,18 +16,17 @@ crbm::crbm(MTRand & random, map<string,float>& parameters,
     L2_par        = parameters["L2"];
     p_drop        = parameters["p_drop"];
     
-    //if (int(parameters["PCD"]) != 0) {
-    //    CD_order = int(parameters["PCD"]);
-    //    CD_type = "persistent"; 
-    //}
+     
+    if (int(parameters["PCD"]) > 0) {
+        CD_order = int(parameters["PCD"]);
+        CD_type = "persistent"; 
+    }
 
-    //else {
-    //    CD_order = int(parameters["CD"]);
-    //    CD_type = "default";
-    //}
+    else {
+        CD_order = int(parameters["CD"]);
+        CD_type = "default";
+    }
     
-    CD_order = int(parameters["CD"]);
-
     if (p_drop > 0) regularization = "Dropout";
     if (L2_par > 0) regularization = "Weigth Decay";
     alpha = 0.9;
@@ -59,7 +58,7 @@ crbm::crbm(MTRand & random, map<string,float>& parameters,
         }
     }
     
-    //printNetwork();
+    printNetwork();
 }
 
 
@@ -252,13 +251,12 @@ void crbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_
     dC.setZero(n_h);
     dD.setZero(n_l);
     
-    //if (CD_type.compare("persistent") == 0) {
-    h_state = Persistent;
-    //}
-    
-    //else {
-    //    h_state = sample_hidden(random,batch_V,batch_L);
-    //}
+    if (CD_type.compare("persistent") == 0) {
+        h_state = Persistent;
+    }
+    else {
+        h_state = sample_hidden(random,batch_V,batch_L);
+    }
 
     h_activation = hidden_activation(batch_V,batch_L);
     
@@ -299,9 +297,9 @@ void crbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_
     c = alpha*c + (learning_rate/batch_size) * dC;
     d = alpha*d + (learning_rate/batch_size) * dD;
     
-    //if (CD_type.compare("persistent") == 0) {
-    Persistent = h_state;
-    //}
+    if (CD_type.compare("persistent") == 0) {
+        Persistent = h_state;
+    }
  
 }
 
@@ -392,36 +390,36 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V,
         Persistent = sample_hidden(random,batch_V,batch_L); 
     }
     
-    for (int e=0; e<epochs; e++) {
-        cout << "Epoch: " << e << endl;
-        for (int b=0; b< n_batches; b++) {
-            batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
-            batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
-            CD(random,batch_V,batch_L);
+    //for (int e=0; e<epochs; e++) {
+    //    cout << "Epoch: " << e << endl;
+    //    for (int b=0; b< n_batches; b++) {
+    //        batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+    //        batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+    //        CD(random,batch_V,batch_L);
+    //    }
+    //}
+ 
+    if (regularization.compare("Weigth Decay") ==0) {
+        for (int e=0; e<epochs; e++) {
+            cout << "Epoch: " << e << endl;
+            for (int b=0; b< n_batches; b++) {
+                batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+                batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+                CD(random,batch_V,batch_L);
+            }
         }
     }
- 
-    //if (regularization.compare("Weight Decay")) {
-    //    for (int e=0; e<epochs; e++) {
-    //        cout << "Epoch: " << e << endl;
-    //        for (int b=0; b< n_batches; b++) {
-    //            batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
-    //            batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
-    //            CD(random,batch_V,batch_L);
-    //        }
-    //    }
-    //}
 
-    //if (regularization.compare("Dropout")) {
-    //    for (int e=0; e<epochs; e++) {
-    //        cout << "Epoch: " << e << endl;
-    //        for (int b=0; b< n_batches; b++) {
-    //            batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
-    //            batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
-    //            dropCD(random,batch_V,batch_L);
-    //        }
-    //    }
-    //}
+    if (regularization.compare("Dropout")==0) {
+        for (int e=0; e<epochs; e++) {
+            cout << "Epoch: " << e << endl;
+            for (int b=0; b< n_batches; b++) {
+                batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+                batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+                dropCD(random,batch_V,batch_L);
+            }
+        }
+    }
  
 }
 
@@ -670,7 +668,7 @@ void crbm::printNetwork()
         cout << "\tRegularization: Weigth Decay with L2 = "<<L2_par<< "\n";
     } 
     if (regularization.compare("Dropout") == 0) {
-        cout << "\tRegularization: Dropout with probability= "<<p_drop<< "\n";
+        cout << "\tRegularization: Dropout with probability p= "<<p_drop<< "\n";
     } 
     cout << "\tMomentum: " << alpha << "\n"; 
     if (CD_type.compare("persistent") == 0) {

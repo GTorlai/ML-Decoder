@@ -24,12 +24,13 @@ void initializeParameters(map<string,float>& par)
     par["nL"] = 0;
     par["lr"] = 0;
     par["L2"] = -1.0;
-    par["CD"] = 0;
-    //par["PCD"] = 0;
+    par["CD"] = -1;
+    par["PCD"] = -1;
     par["l"] = 0;
     par["ep"] = 0;
     par["bs"] = 0;
     par["p_drop"] = -1.0;
+
 }
 
 //*****************************************************************************
@@ -59,11 +60,15 @@ void get_option(const string& arg, const string& description,
 //*****************************************************************************
 
 string buildBaseName(const string& network, const string& model,
-                     map<string,float>& par) 
+                     map<string,float>& par,
+                     const string& CD_id, const string& Reg_id) 
 {
 
     string baseName = network;
-    baseName += "_PCD";
+    
+    if (CD_id.compare("persistent") == 0) baseName += "_PCD";
+    else  baseName += "_CD";
+    
     baseName += boost::str(boost::format("%.0f") % par["CD"]);
     baseName += "_nH";
     
@@ -84,10 +89,16 @@ string buildBaseName(const string& network, const string& model,
     baseName += boost::str(boost::format("%.0f") % par["ep"]);
     baseName += "_lr";
     baseName += boost::str(boost::format("%.3f") % par["lr"]);
-    baseName += "_L2Reg";
-    baseName += boost::str(boost::format("%.3f") % par["L2"]);
-    //baseName += "_drop";
-    //baseName += boost::str(boost::format("%.3f") % par["p_drop"]);
+    
+    if (Reg_id.compare("Weigth Decay")==0) {
+        baseName += "_L2Reg";
+        baseName += boost::str(boost::format("%.3f") % par["L2"]);
+    }
+    else {
+        baseName += "_drop";
+        baseName += boost::str(boost::format("%.2f") % par["p_drop"]);
+    }
+
     baseName += "_";
     baseName += model;
     baseName += "_L";
@@ -103,14 +114,15 @@ string buildBaseName(const string& network, const string& model,
 //*****************************************************************************
 
 string buildModelName(const string& network, const string& model,
-                     map<string,float>& par) 
+                     map<string,float>& par,
+                     const string& CD_id, const string& Reg_id) 
 {
     
     int L = int(sqrt(par["nV"]/2));
     string modelName = "data/networks/L";
     modelName += boost::str(boost::format("%d") % L);
     modelName += "/";
-    modelName += buildBaseName(network,model,par); 
+    modelName += buildBaseName(network,model,par,CD_id,Reg_id); 
     modelName += "_p";
     modelName += boost::str(boost::format("%.3f") % par["p"]);
     modelName += "_model.txt";
@@ -123,14 +135,15 @@ string buildModelName(const string& network, const string& model,
 //*****************************************************************************
 
 string buildAccuracyName(const string& network, const string& model,
-                     map<string,float>& par,string set) 
+                     map<string,float>& par,string set,
+                     const string& CD_id, const string& Reg_id) 
 {
     
     int L = int(sqrt(par["nV"]/2));
     string accuracyName = "data/measurements/L";
     accuracyName += boost::str(boost::format("%d") % L);
     accuracyName += "/";
-    accuracyName += buildBaseName(network,model,par); 
+    accuracyName += buildBaseName(network,model,par,CD_id,Reg_id); 
     accuracyName += "_p";
     accuracyName += boost::str(boost::format("%.3f") % par["p"]);
     accuracyName += "_" + set + "_Accuracy.txt";
