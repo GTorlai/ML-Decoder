@@ -14,18 +14,24 @@ crbm::crbm(MTRand & random, map<string,float>& parameters,
     batch_size    = int(parameters["bs"]);
     learning_rate = parameters["lr"];
     L2_par        = parameters["L2"];
+    p_drop        = parameters["p_drop"];
     
-    if (int(parameters["PCD"]) != 0) {
-        CD_order = int(parameters["PCD"]);
-        CD_type = "persistent"; 
-    }
-    
-    else {
-        CD_order = int(parameters["CD"]);
-        CD_type = "default";
-    }
+    //if (int(parameters["PCD"]) != 0) {
+    //    CD_order = int(parameters["PCD"]);
+    //    CD_type = "persistent"; 
+    //}
 
+    //else {
+    //    CD_order = int(parameters["CD"]);
+    //    CD_type = "default";
+    //}
+    
+    CD_order = int(parameters["CD"]);
+
+    if (p_drop > 0) regularization = "Dropout";
+    if (L2_par > 0) regularization = "Weigth Decay";
     alpha = 0.9;
+    
     n_v = nV;
     n_h = nH;
     n_l = nL;
@@ -53,7 +59,7 @@ crbm::crbm(MTRand & random, map<string,float>& parameters,
         }
     }
     
-    printNetwork();
+    //printNetwork();
 }
 
 
@@ -181,6 +187,49 @@ MatrixXd crbm::sample_label(MTRand & random, const MatrixXd & h_state)
 
 
 //*****************************************************************************
+// Build the dropout asmk for the hidden layer
+//*****************************************************************************
+
+MatrixXd crbm::buildDropoutMask(MTRand & random)
+{
+    MatrixXd mask(batch_size,n_h);
+    
+    for(int s=0; s<batch_size; ++s) {
+        for (int i=0; i<n_h; ++i) {
+            if (random.rand() < p_drop) mask(s,i) = 1;
+            else mask(s,i) = 0;       
+        }
+    }
+    
+    return mask;
+
+}
+
+
+//*****************************************************************************
+// Build the dropout asmk for the hidden layer
+//*****************************************************************************
+
+MatrixXd crbm::dropout(MTRand & random, const MatrixXd& mask, 
+                       const MatrixXd& v_state, const MatrixXd& l_state)
+{
+    
+    MatrixXd activation(batch_size,n_h);
+    MatrixXd h_state(batch_size,n_h);
+    ArrayXXd dropH(batch_size,n_h);
+
+    activation = hidden_activation(v_state,l_state);
+    
+    h_state = MC_sampling(random,activation);
+    
+    dropH = (mask.array())*(h_state.array());
+
+    return dropH.matrix();
+
+}
+
+
+//*****************************************************************************
 // Perform one step of Contrastive Divergence
 //*****************************************************************************
 
@@ -203,14 +252,13 @@ void crbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_
     dC.setZero(n_h);
     dD.setZero(n_l);
     
-    if (CD_type.compare("persistent") == 0) {
-        h_state = Persistent;
-    }
+    //if (CD_type.compare("persistent") == 0) {
+    h_state = Persistent;
+    //}
     
-    else {
-        h_state = sample_hidden(random,batch_V,batch_L);
-    
-    }
+    //else {
+    //    h_state = sample_hidden(random,batch_V,batch_L);
+    //}
 
     h_activation = hidden_activation(batch_V,batch_L);
     
@@ -251,11 +299,81 @@ void crbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_
     c = alpha*c + (learning_rate/batch_size) * dC;
     d = alpha*d + (learning_rate/batch_size) * dD;
     
-    if (CD_type.compare("persistent") == 0) {
-        Persistent = h_state;
-    }
+    //if (CD_type.compare("persistent") == 0) {
+    Persistent = h_state;
+    //}
  
 }
+
+//*****************************************************************************
+// Perform one step of Contrastive Divergence
+//*****************************************************************************
+
+void crbm::dropCD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) 
+{
+    
+    MatrixXd h_activation(batch_size,n_h);
+    MatrixXd mask(batch_size,n_h);
+        
+    MatrixXd h_state(batch_size,n_h);
+    MatrixXd v_state(batch_size,n_v);
+    MatrixXd l_state(batch_size,n_l);
+
+    VectorXd h(n_h);
+    VectorXd v(n_v);
+    VectorXd l(n_l);
+
+    dW.setZero(n_h,n_v);
+    dU.setZero(n_h,n_l);
+    dB.setZero(n_v);
+    dC.setZero(n_h);
+    dD.setZero(n_l);
+    
+    mask = buildDropoutMask(random);
+
+    h_state = dropout(random,mask,batch_V,batch_L);
+
+    h_activation = hidden_activation(batch_V,batch_L);
+    
+    for (int s=0; s<batch_size; s++) {
+        h = h_activation.row(s);
+        v = batch_V.row(s);
+        l = batch_L.row(s);
+        dW += h*v.transpose();
+        dU += h*l.transpose();
+        dB += v;
+        dC += h;
+        dD += l;
+    } 
+    
+    for (int k=0; k<CD_order; k++) {
+
+        v_state = sample_visible(random,h_state);
+        l_state = sample_label(random,h_state);
+        h_state = dropout(random,mask,v_state,l_state);
+    }
+
+    h_activation = hidden_activation(v_state,l_state);
+    
+    for (int s=0; s<batch_size; s++) {
+        h = h_activation.row(s);
+        v = v_state.row(s);
+        l = l_state.row(s);
+        dW += - h*v.transpose();
+        dU += - h*l.transpose();
+        dB += -v;
+        dC += -h;
+        dD += -l;
+    } 
+    
+    W = alpha*W + (learning_rate/batch_size) * dW;
+    U = alpha*U + (learning_rate/batch_size) * dU;
+    b = alpha*b + (learning_rate/batch_size) * dB;
+    c = alpha*c + (learning_rate/batch_size) * dC;
+    d = alpha*d + (learning_rate/batch_size) * dD;
+    
+}
+
 
 
 //*****************************************************************************
@@ -273,7 +391,7 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V,
     if (CD_type.compare("persistent") == 0) {
         Persistent = sample_hidden(random,batch_V,batch_L); 
     }
-
+    
     for (int e=0; e<epochs; e++) {
         cout << "Epoch: " << e << endl;
         for (int b=0; b< n_batches; b++) {
@@ -282,7 +400,29 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V,
             CD(random,batch_V,batch_L);
         }
     }
-    
+ 
+    //if (regularization.compare("Weight Decay")) {
+    //    for (int e=0; e<epochs; e++) {
+    //        cout << "Epoch: " << e << endl;
+    //        for (int b=0; b< n_batches; b++) {
+    //            batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+    //            batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+    //            CD(random,batch_V,batch_L);
+    //        }
+    //    }
+    //}
+
+    //if (regularization.compare("Dropout")) {
+    //    for (int e=0; e<epochs; e++) {
+    //        cout << "Epoch: " << e << endl;
+    //        for (int b=0; b< n_batches; b++) {
+    //            batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+    //            batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+    //            dropCD(random,batch_V,batch_L);
+    //        }
+    //    }
+    //}
+ 
 }
 
 
@@ -516,7 +656,6 @@ MatrixXd crbm::sigmoid(MatrixXd & matrix)
 
 void crbm::printNetwork() 
 {
-
     cout << "\n\n******************************\n\n" << endl;
     cout << "CONDITIONAL RESTRICTED BOLTZMANN MACHINE\n\n";
     cout << "Machine Parameter\n\n";
@@ -527,17 +666,20 @@ void crbm::printNetwork()
     cout << "\tLearning Rate: " << learning_rate << "\n";
     cout << "\tEpochs: " << epochs << "\n";
     cout << "\tBatch Size: " << batch_size << "\n";
-    cout << "\tL2 Regularization: " << L2_par << "\n";
+    if (regularization.compare("Weigth Decay") == 0) {
+        cout << "\tRegularization: Weigth Decay with L2 = "<<L2_par<< "\n";
+    } 
+    if (regularization.compare("Dropout") == 0) {
+        cout << "\tRegularization: Dropout with probability= "<<p_drop<< "\n";
+    } 
     cout << "\tMomentum: " << alpha << "\n"; 
     if (CD_type.compare("persistent") == 0) {
-        cout << "\tL2 Optimization: Persistent Constrastive Divergence" << "\n";
+        cout << "\tOptimization: Persistent Constrastive Divergence" << "\n";
         cout << "\tPCD order: " << CD_order << "\n";
     }
-    
     if (CD_type.compare("default") == 0) {
-        cout << "\tL2 Optimization: Constrastive Divergence" << "\n";
+        cout << "\tOptimization: Constrastive Divergence" << "\n";
         cout << "\tCD order: " << CD_order << "\n";
     }
-
 }
 

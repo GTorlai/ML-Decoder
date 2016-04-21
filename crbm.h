@@ -20,7 +20,10 @@ class crbm {
         float L2_par;
         float learning_rate;
         float alpha;
+        float p_drop;
+
         string CD_type;
+        string regularization;
 
         MatrixXd W;
         MatrixXd U;
@@ -50,11 +53,16 @@ class crbm {
                                                const MatrixXd & l_state);
         MatrixXd sample_visible(MTRand & random, const MatrixXd & h_state);
         MatrixXd sample_label(MTRand & random, const MatrixXd & h_state);
-
+        
+        MatrixXd dropout(MTRand& random, const MatrixXd& mask, 
+                         const MatrixXd& v_state, const MatrixXd& l_state);
+        
         // Core Functions
         void CD(MTRand & random, const MatrixXd& batch_V, 
                                  const MatrixXd& batch_L);
-        
+        void dropCD(MTRand & random, const MatrixXd& batch_V, 
+                                 const MatrixXd& batch_L);
+ 
         void train(MTRand & random, const MatrixXd& dataset_V, 
                                                const MatrixXd& dataset_L);
         
@@ -62,6 +70,7 @@ class crbm {
                         MatrixXd& testSet_E, MatrixXd& testSet_S);
 
         // Utilities
+        MatrixXd buildDropoutMask(MTRand& random);
         void loadParameters(string& modelName);
         void saveParameters(string& modelName);
         void printNetwork();

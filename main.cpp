@@ -42,8 +42,9 @@ int main(int argc, char* argv[]) {
     get_option("CD","Contrastive Divergence",argc,argv,Parameters,Helper);
     get_option("ep","Training Epochs",argc,argv,Parameters,Helper);
     get_option("bs","Batch Size",argc,argv,Parameters,Helper);
-    get_option("PCD","Persistent Contrastive Divergence",argc,argv,Parameters,Helper);
-    
+    //get_option("PCD","Persistent Contrastive Divergence",argc,argv,Parameters,Helper);
+    get_option("p_drop","Dropout Probability",argc,argv,Parameters,Helper);
+ 
     MTRand random(1234);
     
     //clock_t begin = clock();

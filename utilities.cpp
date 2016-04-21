@@ -23,13 +23,13 @@ void initializeParameters(map<string,float>& par)
     par["nH"] = 0;
     par["nL"] = 0;
     par["lr"] = 0;
-    par["L2"] = 0;
+    par["L2"] = -1.0;
     par["CD"] = 0;
-    par["PCD"] = 0;
+    //par["PCD"] = 0;
     par["l"] = 0;
     par["ep"] = 0;
     par["bs"] = 0;
-
+    par["p_drop"] = -1.0;
 }
 
 //*****************************************************************************
@@ -63,9 +63,10 @@ string buildBaseName(const string& network, const string& model,
 {
 
     string baseName = network;
-    baseName += "_CD";
+    baseName += "_PCD";
     baseName += boost::str(boost::format("%.0f") % par["CD"]);
     baseName += "_nH";
+    
     if (network.compare("DBN") == 0) {
         
         for (int l=1; l<par["l"]+1; ++l) {
@@ -85,6 +86,8 @@ string buildBaseName(const string& network, const string& model,
     baseName += boost::str(boost::format("%.3f") % par["lr"]);
     baseName += "_L2Reg";
     baseName += boost::str(boost::format("%.3f") % par["L2"]);
+    //baseName += "_drop";
+    //baseName += boost::str(boost::format("%.3f") % par["p_drop"]);
     baseName += "_";
     baseName += model;
     baseName += "_L";
