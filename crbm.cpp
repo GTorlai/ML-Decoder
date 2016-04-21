@@ -15,7 +15,7 @@ crbm::crbm(MTRand & random, map<string,float>& parameters,
     learning_rate = parameters["lr"];
     L2_par        = parameters["L2"];
     p_drop        = parameters["p_drop"];
-    
+    beta          = parameters["beta"]; 
      
     if (int(parameters["PCD"]) > 0) {
         CD_order = int(parameters["PCD"]);
@@ -58,7 +58,6 @@ crbm::crbm(MTRand & random, map<string,float>& parameters,
         }
     }
     
-    printNetwork();
 }
 
 
@@ -232,7 +231,7 @@ MatrixXd crbm::dropout(MTRand & random, const MatrixXd& mask,
 // Perform one step of Contrastive Divergence
 //*****************************************************************************
 
-void crbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) 
+void crbm::genCD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) 
 {
     
     MatrixXd h_activation(batch_size,n_h);
@@ -302,6 +301,152 @@ void crbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_
     }
  
 }
+
+
+//*****************************************************************************
+// Perform one step of Contrastive Divergence
+//*****************************************************************************
+
+void crbm::discCD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) 
+{
+    
+    MatrixXd h_activation(batch_size,n_h);
+    
+    MatrixXd h_state(batch_size,n_h);
+    MatrixXd v_state(batch_size,n_v);
+    MatrixXd l_state(batch_size,n_l);
+
+    VectorXd h(n_h);
+    VectorXd v(n_v);
+    VectorXd l(n_l);
+
+    dW.setZero(n_h,n_v);
+    dU.setZero(n_h,n_l);
+    dB.setZero(n_v);
+    dC.setZero(n_h);
+    dD.setZero(n_l);
+    
+    h_state = sample_hidden(random,batch_V,batch_L);
+
+    h_activation = hidden_activation(batch_V,batch_L);
+    
+    for (int s=0; s<batch_size; s++) {
+        h = h_activation.row(s);
+        v = batch_V.row(s);
+        l = batch_L.row(s);
+        dW += h*v.transpose();
+        dU += h*l.transpose();
+        dC += h;
+        dD += l;
+    } 
+    
+
+    l_state = sample_label(random,h_state);
+    h_state = sample_hidden(random,batch_V,l_state);
+
+    h_activation = hidden_activation(batch_V,l_state);
+    
+    for (int s=0; s<batch_size; s++) {
+        h = h_activation.row(s);
+        v = batch_V.row(s);
+        l = l_state.row(s);
+        dW += - h*v.transpose();
+        dU += - h*l.transpose();
+        dC += -h;
+        dD += -l;
+    } 
+    
+    W = alpha*W + (learning_rate/batch_size) * (dW + L2_par*W);
+    U = alpha*U + (learning_rate/batch_size) * (dU + L2_par*U);
+    c = alpha*c + (learning_rate/batch_size) * dC;
+    d = alpha*d + (learning_rate/batch_size) * dD;
+    
+}
+
+void crbm::hybridCD(MTRand & random, double beta,
+        const MatrixXd & batch_V, const MatrixXd & batch_L) 
+{
+    
+    MatrixXd h_activation(batch_size,n_h);
+    
+    MatrixXd h_state0(batch_size,n_h);
+    MatrixXd h_state(batch_size,n_h);
+    MatrixXd v_state(batch_size,n_v);
+    MatrixXd l_state(batch_size,n_l);
+
+    VectorXd h(n_h);
+    VectorXd v(n_v);
+    VectorXd l(n_l);
+
+    dW.setZero(n_h,n_v);
+    dU.setZero(n_h,n_l);
+    dB.setZero(n_v);
+    dC.setZero(n_h);
+    dD.setZero(n_l);
+    
+    h_state0 = sample_hidden(random,batch_V,batch_L);
+    h_state = h_state0;
+
+    h_activation = hidden_activation(batch_V,batch_L);
+    
+    for (int s=0; s<batch_size; s++) {
+        h = h_activation.row(s);
+        v = batch_V.row(s);
+        l = batch_L.row(s);
+        dW += (1+beta)*h*v.transpose();
+        dU += (1+beta)*h*l.transpose();
+        dB += beta*v;
+        dC += (1+beta)*h;
+        dD += (1+beta)*l;
+    } 
+    
+
+    //v_state = sample_visible(random,h_state);
+    l_state = sample_label(random,h_state);
+    h_state = sample_hidden(random,batch_V,l_state);
+
+    h_activation = hidden_activation(batch_V,l_state);
+    
+    for (int s=0; s<batch_size; s++) {
+        h = h_activation.row(s);
+        v = batch_V.row(s);
+        l = l_state.row(s);
+        dW += -h*v.transpose();
+        dU += -h*l.transpose();
+        dC += -h;
+        dD += -l;
+    } 
+    
+    h_state = h_state0;
+
+    for (int k=0; k<CD_order; k++) {
+
+        v_state = sample_visible(random,h_state);
+        l_state = sample_label(random,h_state);
+        h_state = sample_hidden(random,v_state,l_state);
+    }
+
+    h_activation = hidden_activation(v_state,l_state);
+    
+    for (int s=0; s<batch_size; s++) {
+        h = h_activation.row(s);
+        v = v_state.row(s);
+        l = l_state.row(s);
+        dW += -beta*h*v.transpose();
+        dU += -beta*h*l.transpose();
+        dB += -beta*v;
+        dC += -beta*h;
+        dD += -beta*l;
+    } 
+ 
+    W = alpha*W + (learning_rate/batch_size) * (dW + L2_par*W);
+    U = alpha*U + (learning_rate/batch_size) * (dU + L2_par*U);
+    b = alpha*b + (learning_rate/batch_size) * dB;
+    c = alpha*c + (learning_rate/batch_size) * dC;
+    d = alpha*d + (learning_rate/batch_size) * dD;
+    
+}
+
 
 //*****************************************************************************
 // Perform one step of Contrastive Divergence
@@ -378,8 +523,8 @@ void crbm::dropCD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & ba
 // Train the Boltzmann Machine
 //*****************************************************************************
 
-void crbm::train(MTRand & random, const MatrixXd & dataset_V, 
-                                             const MatrixXd & dataset_L) 
+void crbm::train(MTRand & random, const string& network,
+        const MatrixXd & dataset_V, const MatrixXd & dataset_L) 
 {
 
     int n_batches = dataset_V.rows() / batch_size;
@@ -390,35 +535,76 @@ void crbm::train(MTRand & random, const MatrixXd & dataset_V,
         Persistent = sample_hidden(random,batch_V,batch_L); 
     }
     
-    //for (int e=0; e<epochs; e++) {
-    //    cout << "Epoch: " << e << endl;
-    //    for (int b=0; b< n_batches; b++) {
-    //        batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
-    //        batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
-    //        CD(random,batch_V,batch_L);
-    //    }
-    //}
- 
-    if (regularization.compare("Weigth Decay") ==0) {
-        for (int e=0; e<epochs; e++) {
-            cout << "Epoch: " << e << endl;
-            for (int b=0; b< n_batches; b++) {
-                batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
-                batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
-                CD(random,batch_V,batch_L);
+    if (network.compare("CRBM")==0) { 
+        if (regularization.compare("Weigth Decay") ==0) {
+            for (int e=0; e<epochs; e++) {
+                cout << "Epoch: " << e << endl;
+                for (int b=0; b< n_batches; b++) {
+                    batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+                    batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+                    genCD(random,batch_V,batch_L);
+                }
+            }
+        }
+
+        if (regularization.compare("Dropout")==0) {
+            for (int e=0; e<epochs; e++) {
+                cout << "Epoch: " << e << endl;
+                for (int b=0; b< n_batches; b++) {
+                    batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+                    batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+                    dropCD(random,batch_V,batch_L);
+                }
             }
         }
     }
 
-    if (regularization.compare("Dropout")==0) {
-        for (int e=0; e<epochs; e++) {
-            cout << "Epoch: " << e << endl;
-            for (int b=0; b< n_batches; b++) {
-                batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
-                batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
-                dropCD(random,batch_V,batch_L);
+    if (network.compare("discCRBM")==0) { 
+        if (regularization.compare("Weigth Decay") ==0) {
+            for (int e=0; e<epochs; e++) {
+                cout << "Epoch: " << e << endl;
+                for (int b=0; b< n_batches; b++) {
+                    batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+                    batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+                    discCD(random,batch_V,batch_L);
+                }
             }
         }
+
+        //if (regularization.compare("Dropout")==0) {
+        //    for (int e=0; e<epochs; e++) {
+        //        cout << "Epoch: " << e << endl;
+        //        for (int b=0; b< n_batches; b++) {
+        //            batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+        //            batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+        //            dropCD(random,batch_V,batch_L);
+        //        }
+        //    }
+        //}
+    }
+
+    if (network.compare("hybridCRBM")==0) { 
+        if (regularization.compare("Weigth Decay") ==0) {
+            for (int e=0; e<epochs; e++) {
+                cout << "Epoch: " << e << endl;
+                for (int b=0; b< n_batches; b++) {
+                    batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+                    batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+                    hybridCD(random,beta,batch_V,batch_L);
+                }
+            }
+        }
+
+        //if (regularization.compare("Dropout")==0) {
+        //    for (int e=0; e<epochs; e++) {
+        //        cout << "Epoch: " << e << endl;
+        //        for (int b=0; b< n_batches; b++) {
+        //            batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
+        //            batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
+        //            dropCD(random,batch_V,batch_L);
+        //        }
+        //    }
+        //}
     }
  
 }
@@ -652,7 +838,7 @@ MatrixXd crbm::sigmoid(MatrixXd & matrix)
 // Print Network Informations
 //*****************************************************************************
 
-void crbm::printNetwork() 
+void crbm::printNetwork(const string& network) 
 {
     cout << "\n\n******************************\n\n" << endl;
     cout << "CONDITIONAL RESTRICTED BOLTZMANN MACHINE\n\n";
@@ -661,6 +847,18 @@ void crbm::printNetwork()
     cout << "\tNumber of Hidden Units: " << n_h << "\n";
     cout << "\tNumber of Label Units: " << n_l << "\n";
     cout << "\nHyper-parameters\n\n";
+    cout << "\tTraining Objective: ";
+    if (network.compare("CRBM")==0) {
+        cout << "Generative\n";
+    }
+    else if (network.compare("discCRBM")==0) {
+        cout << "Discriminative\n";
+    }
+    else if (network.compare("hybridCRBM")==0) {
+        cout << "Hybrid with mixing rate of ";
+        cout << beta << endl;
+    }
+
     cout << "\tLearning Rate: " << learning_rate << "\n";
     cout << "\tEpochs: " << epochs << "\n";
     cout << "\tBatch Size: " << batch_size << "\n";

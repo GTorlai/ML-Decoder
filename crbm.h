@@ -20,6 +20,7 @@ class crbm {
         float L2_par;
         float learning_rate;
         float alpha;
+        float beta;
         float p_drop;
 
         string CD_type;
@@ -58,13 +59,19 @@ class crbm {
                          const MatrixXd& v_state, const MatrixXd& l_state);
         
         // Core Functions
-        void CD(MTRand & random, const MatrixXd& batch_V, 
+        void genCD(MTRand & random, const MatrixXd& batch_V, 
                                  const MatrixXd& batch_L);
+        
+        void discCD(MTRand & random, const MatrixXd& batch_V, 
+                                 const MatrixXd& batch_L);
+        void hybridCD(MTRand & random, double beta,
+                      const MatrixXd& batch_V, const MatrixXd& batch_L);
+ 
         void dropCD(MTRand & random, const MatrixXd& batch_V, 
                                  const MatrixXd& batch_L);
  
-        void train(MTRand & random, const MatrixXd& dataset_V, 
-                                               const MatrixXd& dataset_L);
+        void train(MTRand & random, const string& network,
+                const MatrixXd& dataset_V, const MatrixXd& dataset_L);
         
         double decode(MTRand & random, Decoder & TC, 
                         MatrixXd& testSet_E, MatrixXd& testSet_S);
@@ -73,7 +80,7 @@ class crbm {
         MatrixXd buildDropoutMask(MTRand& random);
         void loadParameters(string& modelName);
         void saveParameters(string& modelName);
-        void printNetwork();
+        void printNetwork(const string& network);
         MatrixXd sigmoid(MatrixXd & matrix); 
         MatrixXd MC_sampling(MTRand & random, MatrixXd & activation);
 

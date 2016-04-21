@@ -30,6 +30,7 @@ void initializeParameters(map<string,float>& par)
     par["ep"] = 0;
     par["bs"] = 0;
     par["p_drop"] = -1.0;
+    par["beta"] = 0.0;
 
 }
 
@@ -68,9 +69,14 @@ string buildBaseName(const string& network, const string& model,
     
     if (CD_id.compare("persistent") == 0) baseName += "_PCD";
     else  baseName += "_CD";
-    
     baseName += boost::str(boost::format("%.0f") % par["CD"]);
-    baseName += "_nH";
+ 
+    if (network.compare("hybridCRBM") == 0) {
+        baseName += "_beta";
+        baseName += boost::str(boost::format("%.2f") % par["beta"]);
+    }
+
+        baseName += "_nH";
     
     if (network.compare("DBN") == 0) {
         
@@ -98,7 +104,7 @@ string buildBaseName(const string& network, const string& model,
         baseName += "_drop";
         baseName += boost::str(boost::format("%.2f") % par["p_drop"]);
     }
-
+    
     baseName += "_";
     baseName += model;
     baseName += "_L";

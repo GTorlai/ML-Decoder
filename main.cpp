@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
     get_option("ep","Training Epochs",argc,argv,Parameters,Helper);
     get_option("bs","Batch Size",argc,argv,Parameters,Helper);
     get_option("p_drop","Dropout Probability",argc,argv,Parameters,Helper);
+    get_option("beta","Mixing rate of likelihoods",argc,argv,Parameters,Helper);
 
     if (network.compare("DBN") == 0) {
         
@@ -72,19 +73,6 @@ int main(int argc, char* argv[]) {
         train_E = dataset[0];
         train_S = dataset[1];
         
-        if (network.compare("CRBM") == 0) {
-            
-            crbm crbm(random,Parameters, int(Parameters["nV"]),
-                                         int(Parameters["nH"]),
-                                         int(Parameters["nL"]));
-
-            //crbm.printNetwork();
-            string modelName = buildModelName(network,model,Parameters,
-                                              CD_id, Reg_id);
-            crbm.train(random,train_E,train_S); 
-            crbm.saveParameters(modelName); 
-        }
-        
         if (network.compare("DBN") == 0) {
 
             string modelName = buildModelName(network,model,Parameters,
@@ -93,6 +81,23 @@ int main(int argc, char* argv[]) {
             dbn.Train(random,train_E,train_S);
             dbn.saveParameters(modelName);
         } 
+        
+        else {
+            
+            crbm crbm(random,Parameters, int(Parameters["nV"]),
+                                         int(Parameters["nH"]),
+                                         int(Parameters["nL"]));
+            
+            crbm.printNetwork(network);
+
+            string modelName = buildModelName(network,model,Parameters,
+                                              CD_id, Reg_id);
+            
+            crbm.train(random,network,train_E,train_S); 
+            crbm.saveParameters(modelName); 
+        }
+        
+         
     }
     
     if (command.compare("decode") == 0) {

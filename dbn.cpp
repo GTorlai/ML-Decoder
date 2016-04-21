@@ -83,7 +83,7 @@ void dbn::Train(MTRand & random, const MatrixXd& data_E,
     }
     
     cout << "Training CRBM " << endl << endl;
-    crbms[0].train(random,oldDataset,data_S);
+    crbms[0].train(random,"CRBM",oldDataset,data_S);
 }
 
 
