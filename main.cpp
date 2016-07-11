@@ -26,41 +26,37 @@ int main(int argc, char* argv[]) {
     get_option("lr","Learning Rate",argc,argv,Parameters,Helper);
     get_option("L2","L2 Regularization Amplitude",argc,argv,Parameters,Helper);
     get_option("CD","Contrastive Divergence",argc,argv,Parameters,Helper);
-    get_option("PCD","Persistent Contrastive Divergence",argc,argv,Parameters,Helper);
+    //get_option("PCD","Persistent Contrastive Divergence",argc,argv,Parameters,Helper);
     get_option("ep","Training Epochs",argc,argv,Parameters,Helper);
     get_option("bs","Batch Size",argc,argv,Parameters,Helper);
     get_option("p_drop","Dropout Probability",argc,argv,Parameters,Helper);
     get_option("beta","Mixing rate of likelihoods",argc,argv,Parameters,Helper);
 
-    if (network.compare("DBN") == 0) {
-        
-        for (int l=1; l<Parameters["l"]+1; ++l) {
-        
-        string hid = "nH" + boost::str(boost::format("%d") % l);
-        string hid_helper = "Number of Hidden Units on Layer ";
-        hid_helper += boost::str(boost::format("%d") % l); 
-        get_option(hid,  hid_helper ,argc,argv,Parameters,Helper);
-        }
-    }
+    //if (network.compare("DBN") == 0) {
+    //    
+    //    for (int l=1; l<Parameters["l"]+1; ++l) {
+    //    
+    //    string hid = "nH" + boost::str(boost::format("%d") % l);
+    //    string hid_helper = "Number of Hidden Units on Layer ";
+    //    hid_helper += boost::str(boost::format("%d") % l); 
+    //    get_option(hid,  hid_helper ,argc,argv,Parameters,Helper);
+    //    }
+    //}
 
-    else {
-        Parameters["l"] = 1;
-        get_option("nH" ,"Number of Hidden Units",argc,argv,Parameters,Helper);
-    }
+    //else {
+    Parameters["l"] = 1;
+    get_option("nH" ,"Number of Hidden Units",argc,argv,Parameters,Helper);
+    //}
 
-    if (int(Parameters["PCD"]) > 0) CD_id = "persistent";
-    else CD_id = "default";
+    //if (int(Parameters["PCD"]) > 0) CD_id = "persistent";
+    //else CD_id = "default";
     if (Parameters["p_drop"] > 0) Reg_id = "Dropout";
-    else Reg_id = "Weigth Decay";
- 
+    else Reg_id = "Weight Decay";
 
-    MTRand random(1234);
+    MTRand random(1357);
     
     //clock_t begin = clock();
     
-    int L = int(sqrt(Parameters["nV"]/2));
-    Decoder TC(L);
- 
     if (command.compare("train") == 0) {
             
         int train_size = 200000;
@@ -72,32 +68,19 @@ int main(int argc, char* argv[]) {
         dataset = loadDataset(train_size,"Train",Parameters);
         train_E = dataset[0];
         train_S = dataset[1];
+            
+        crbm crbm(random,Parameters, int(Parameters["nV"]),
+                                     int(Parameters["nH"]),
+                                     int(Parameters["nL"]));
         
-        if (network.compare("DBN") == 0) {
+        crbm.printNetwork(network);
 
-            string modelName = buildModelName(network,model,Parameters,
-                                              CD_id, Reg_id);
-            dbn dbn(random,Parameters);
-            dbn.Train(random,train_E,train_S);
-            dbn.saveParameters(modelName);
-        } 
+        string modelName = buildModelName(network,model,Parameters,
+                                          CD_id, Reg_id);
         
-        else {
-            
-            crbm crbm(random,Parameters, int(Parameters["nV"]),
-                                         int(Parameters["nH"]),
-                                         int(Parameters["nL"]));
-            
-            crbm.printNetwork(network);
-
-            string modelName = buildModelName(network,model,Parameters,
-                                              CD_id, Reg_id);
-            
-            crbm.train(random,network,train_E,train_S); 
-            crbm.saveParameters(modelName); 
-        }
+        crbm.train(random,network,train_E,train_S); 
+        crbm.saveParameters(modelName); 
         
-         
     }
     
     if (command.compare("decode") == 0) {
@@ -109,11 +92,8 @@ int main(int argc, char* argv[]) {
         MatrixXd data_E(size,int(Parameters["nV"]));
         MatrixXd data_S(size,int(Parameters["nL"]));
         
-        dataset = loadDataset(size,set,Parameters);
-        data_E = dataset[0];
-        data_S = dataset[1];
-        //int L = int(sqrt(Parameters["nV"]/2));
-        //Decoder TC(L);
+                int L = int(sqrt(Parameters["nV"]/2));
+        Decoder TC(L);
 
         string modelName = buildModelName(network,model,Parameters,
                                           CD_id, Reg_id);
@@ -122,33 +102,33 @@ int main(int argc, char* argv[]) {
         
         ofstream fout(accuracyName);
         
-        double LogicalError;
+        double accuracy;
 
-        if (network.compare("CRBM") == 0) {
-            
-            crbm crbm(random,Parameters, int(Parameters["nV"]),
+        crbm crbm(random,Parameters, int(Parameters["nV"]),
                                          int(Parameters["nH"]),
                                          int(Parameters["nL"]));
             
-            
-            crbm.loadParameters(modelName); 
-            
-            LogicalError = crbm.decode(random,TC,data_E,data_S);
-        } 
+        crbm.loadParameters(modelName); 
         
-        if (network.compare("DBN") == 0) {
-            
-            //dbn dbn(random,Parameters);
-            //
-            //dbn.loadParameters(modelName); 
-            //
-            //LogicalError = dbn.decode(random,TC,data_E,data_S);
-        } 
- 
-
+        dataset = loadDataset(10000,"Test",Parameters);
+        data_E = dataset[0];
+        data_S = dataset[1];
+    
+        accuracy = crbm.decode(random,TC,data_E,data_S);
+        
         fout << Parameters["p"] << "    ";
-        fout << LogicalError << endl; 
+        fout << accuracy << "    "; 
+       
+        dataset.clear();
+
+        dataset = loadDataset(10000,"Train",Parameters);
+        data_E = dataset[0];
+        data_S = dataset[1];
+    
+        accuracy = crbm.decode(random,TC,data_E,data_S);
         
+        fout << accuracy << endl; 
+  
         fout.close();
 
     }     
