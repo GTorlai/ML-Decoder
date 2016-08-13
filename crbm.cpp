@@ -317,76 +317,6 @@ void crbm::genCD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & bat
  
 }
 
-//*****************************************************************************
-// Perform one step of Contrastive Divergence
-//*****************************************************************************
-
-void crbm::dropCD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) 
-{
-    
-    MatrixXd h_activation(batch_size,n_h);
-    MatrixXd mask(batch_size,n_h);
-        
-    MatrixXd h_state(batch_size,n_h);
-    MatrixXd v_state(batch_size,n_v);
-    MatrixXd l_state(batch_size,n_l);
-
-    VectorXd h(n_h);
-    VectorXd v(n_v);
-    VectorXd l(n_l);
-
-    dW.setZero(n_h,n_v);
-    dU.setZero(n_h,n_l);
-    dB.setZero(n_v);
-    dC.setZero(n_h);
-    dD.setZero(n_l);
-    
-    mask = buildDropoutMask(random);
-
-    h_state = dropout(random,mask,batch_V,batch_L);
-
-    h_activation = hidden_activation(batch_V,batch_L);
-    
-    for (int s=0; s<batch_size; s++) {
-        h = h_activation.row(s);
-        v = batch_V.row(s);
-        l = batch_L.row(s);
-        dW += h*v.transpose();
-        dU += h*l.transpose();
-        dB += v;
-        dC += h;
-        dD += l;
-    } 
-    
-    for (int k=0; k<CD_order; k++) {
-
-        v_state = sample_visible(random,h_state);
-        l_state = sample_label(random,h_state);
-        h_state = dropout(random,mask,v_state,l_state);
-    }
-
-    h_activation = hidden_activation(v_state,l_state);
-    
-    for (int s=0; s<batch_size; s++) {
-        h = h_activation.row(s);
-        v = v_state.row(s);
-        l = l_state.row(s);
-        dW += - h*v.transpose();
-        dU += - h*l.transpose();
-        dB += -v;
-        dC += -h;
-        dD += -l;
-    } 
-    
-    W = 0.95 * W + (learning_rate/batch_size) * dW;
-    U = 0.95 * U + (learning_rate/batch_size) * dU;
-    b = 0.95 * b + (learning_rate/batch_size) * dB;
-    c = 0.95 * c + (learning_rate/batch_size) * dC;
-    d = 0.95 * d + (learning_rate/batch_size) * dD;
-    
-}
-
-
 
 //*****************************************************************************
 // Train the Boltzmann Machine
@@ -432,7 +362,7 @@ void crbm::train(MTRand & random, const string& network,
             }
         }
     }
-    //}
+   //}
    // 
    // if (network.compare("discCRBM")==0) { 
    //     if (regularization.compare("Weigth Decay") ==0) {
@@ -518,7 +448,8 @@ double crbm::decode(MTRand & random, Decoder & TC,
         
         counter = 0;
 
-       // cout << s; 
+        cout << "Error # " << s << endl;
+
         for (int j=0; j<n_v; ++j) {
             
             v_state(0,j) = random.randInt(1);
@@ -562,17 +493,17 @@ double crbm::decode(MTRand & random, Decoder & TC,
             C_status = TC.getLogicalState(C);
 
             if (C_status == 0) {
-        //        cout << " -> CORRECTED" << endl;
+                cout << " -> CORRECTED" << endl;
                 corrected++;
             }
             
-      //      else cout << " -> FAILED" << endl;
+            else cout << " -> FAILED" << endl;
 
         }
         
     }
     
-    //cout << "\n\nAccuracy: " << 100.0*corrected/(1.0*size) << endl;    
+    cout << "\n\nAccuracy: " << 100.0*corrected/(1.0*size) << endl;    
     double accuracy = 100.0*corrected/(1.0*size);
 
     return accuracy;
@@ -759,6 +690,78 @@ void crbm::printNetwork(const string& network)
         cout << "\tCD order: " << CD_order << "\n";
     }
 }
+
+
+////*****************************************************************************
+//// Perform one step of Contrastive Divergence
+////*****************************************************************************
+//
+//void crbm::dropCD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L) 
+//{
+//    
+//    MatrixXd h_activation(batch_size,n_h);
+//    MatrixXd mask(batch_size,n_h);
+//        
+//    MatrixXd h_state(batch_size,n_h);
+//    MatrixXd v_state(batch_size,n_v);
+//    MatrixXd l_state(batch_size,n_l);
+//
+//    VectorXd h(n_h);
+//    VectorXd v(n_v);
+//    VectorXd l(n_l);
+//
+//    dW.setZero(n_h,n_v);
+//    dU.setZero(n_h,n_l);
+//    dB.setZero(n_v);
+//    dC.setZero(n_h);
+//    dD.setZero(n_l);
+//    
+//    mask = buildDropoutMask(random);
+//
+//    h_state = dropout(random,mask,batch_V,batch_L);
+//
+//    h_activation = hidden_activation(batch_V,batch_L);
+//    
+//    for (int s=0; s<batch_size; s++) {
+//        h = h_activation.row(s);
+//        v = batch_V.row(s);
+//        l = batch_L.row(s);
+//        dW += h*v.transpose();
+//        dU += h*l.transpose();
+//        dB += v;
+//        dC += h;
+//        dD += l;
+//    } 
+//    
+//    for (int k=0; k<CD_order; k++) {
+//
+//        v_state = sample_visible(random,h_state);
+//        l_state = sample_label(random,h_state);
+//        h_state = dropout(random,mask,v_state,l_state);
+//    }
+//
+//    h_activation = hidden_activation(v_state,l_state);
+//    
+//    for (int s=0; s<batch_size; s++) {
+//        h = h_activation.row(s);
+//        v = v_state.row(s);
+//        l = l_state.row(s);
+//        dW += - h*v.transpose();
+//        dU += - h*l.transpose();
+//        dB += -v;
+//        dC += -h;
+//        dD += -l;
+//    } 
+//    
+//    W = 0.95 * W + (learning_rate/batch_size) * dW;
+//    U = 0.95 * U + (learning_rate/batch_size) * dU;
+//    b = 0.95 * b + (learning_rate/batch_size) * dB;
+//    c = 0.95 * c + (learning_rate/batch_size) * dC;
+//    d = 0.95 * d + (learning_rate/batch_size) * dD;
+//    
+//}
+
+
 
 //*****************************************************************************
 // Perform one step of Contrastive Divergence
