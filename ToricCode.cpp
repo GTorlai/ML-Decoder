@@ -1,4 +1,4 @@
-#include "decoder.h"
+#include "ToricCode.h"
 
 Decoder::Decoder(int L_) {
 

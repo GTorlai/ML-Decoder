@@ -2,7 +2,7 @@
 #include <time.h>
 #include <omp.h>
 #include <fstream>
-#include "dbn.cpp"
+#include "rbm.cpp"
 
 int main(int argc, char* argv[]) {
    
@@ -26,32 +26,13 @@ int main(int argc, char* argv[]) {
     get_option("lr","Learning Rate",argc,argv,Parameters,Helper);
     get_option("L2","L2 Regularization Amplitude",argc,argv,Parameters,Helper);
     get_option("CD","Contrastive Divergence",argc,argv,Parameters,Helper);
-    //get_option("PCD","Persistent Contrastive Divergence",argc,argv,Parameters,Helper);
     get_option("ep","Training Epochs",argc,argv,Parameters,Helper);
     get_option("bs","Batch Size",argc,argv,Parameters,Helper);
-    get_option("p_drop","Dropout Probability",argc,argv,Parameters,Helper);
-    get_option("beta","Mixing rate of likelihoods",argc,argv,Parameters,Helper);
 
-    //if (network.compare("DBN") == 0) {
-    //    
-    //    for (int l=1; l<Parameters["l"]+1; ++l) {
-    //    
-    //    string hid = "nH" + boost::str(boost::format("%d") % l);
-    //    string hid_helper = "Number of Hidden Units on Layer ";
-    //    hid_helper += boost::str(boost::format("%d") % l); 
-    //    get_option(hid,  hid_helper ,argc,argv,Parameters,Helper);
-    //    }
-    //}
-
-    //else {
     Parameters["l"] = 1;
     get_option("nH" ,"Number of Hidden Units",argc,argv,Parameters,Helper);
-    //}
 
-    //if (int(Parameters["PCD"]) > 0) CD_id = "persistent";
-    //else CD_id = "default";
-    if (Parameters["p_drop"] > 0) Reg_id = "Dropout";
-    else Reg_id = "Weight Decay";
+    Reg_id = "Weight Decay";
 
     MTRand random(1357);
     
@@ -69,17 +50,17 @@ int main(int argc, char* argv[]) {
         train_E = dataset[0];
         train_S = dataset[1];
             
-        crbm crbm(random,Parameters, int(Parameters["nV"]),
+        rbm rbm(random,Parameters, int(Parameters["nV"]),
                                      int(Parameters["nH"]),
                                      int(Parameters["nL"]));
         
-        crbm.printNetwork(network);
+        rbm.printNetwork(network);
 
         string modelName = buildModelName(network,model,Parameters,
                                           CD_id, Reg_id);
         
-        crbm.train(random,network,train_E,train_S); 
-        crbm.saveParameters(modelName); 
+        //rbm.train(random,network,train_E,train_S); 
+        //rbm.saveParameters(modelName); 
         
     }
     
@@ -104,17 +85,17 @@ int main(int argc, char* argv[]) {
         
         double accuracy;
 
-        crbm crbm(random,Parameters, int(Parameters["nV"]),
+        rbm rbm(random,Parameters, int(Parameters["nV"]),
                                          int(Parameters["nH"]),
                                          int(Parameters["nL"]));
             
-        crbm.loadParameters(modelName); 
+        rbm.loadParameters(modelName); 
         
         dataset = loadDataset(10000,"Test",Parameters);
         data_E = dataset[0];
         data_S = dataset[1];
     
-        accuracy = crbm.decode(random,TC,data_E,data_S);
+        accuracy = rbm.decode(random,TC,data_E,data_S);
         
         fout << Parameters["p"] << "    ";
         fout << accuracy << "    "; 
@@ -125,7 +106,7 @@ int main(int argc, char* argv[]) {
         data_E = dataset[0];
         data_S = dataset[1];
     
-        accuracy = crbm.decode(random,TC,data_E,data_S);
+        accuracy = rbm.decode(random,TC,data_E,data_S);
         
         fout << accuracy << endl; 
   

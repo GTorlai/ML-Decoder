@@ -1,7 +1,7 @@
 #ifndef RBM_H
 #define RBM_H
 
-#include "decoder.cpp"
+#include "ToricCode.cpp"
 
 using namespace std;
 using namespace Eigen;

@@ -67,33 +67,13 @@ string buildBaseName(const string& network, const string& model,
 
     string baseName = network;
     
-    //if (CD_id.compare("persistent") == 0){ 
-    //    baseName += "_PCD"; 
-    //    baseName += boost::str(boost::format("%.0f") % par["PCD"]);
-    //}
-    //else  {
     baseName += "_CD";
     baseName += boost::str(boost::format("%.0f") % par["CD"]);
-    //}
     
-    //if (network.compare("hybridCRBM") == 0) {
-    //    baseName += "_beta";
-    //    baseName += boost::str(boost::format("%.2f") % par["beta"]);
-    //}
-
+   
     baseName += "_nH";
     
-    //if (network.compare("DBN") == 0) {
-    //    
-    //    for (int l=1; l<par["l"]+1; ++l) {
-    //        string hid = "nH" + boost::str(boost::format("%d") % l);
-    //        baseName += "-";
-    //        baseName += boost::str(boost::format("%.0f") % par[hid]);
-    //    }
-    //}
-    //else {
     baseName += boost::str(boost::format("%.0f") % par["nH"]);
-    //}
     
     baseName += "_bs";
     baseName += boost::str(boost::format("%.0f") % par["bs"]);

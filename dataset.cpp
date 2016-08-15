@@ -1,9 +1,3 @@
-//#include "rbm.cpp"
-//#include "crbm.cpp"
-//#include <string.h>
-//#include <sstream>
-//#include <vector>
-//#include <iostream>
 #include <stdlib.h>
 #include <time.h>
 #include <omp.h>
