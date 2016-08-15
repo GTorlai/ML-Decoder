@@ -1,9 +1,6 @@
 #ifndef RBM_H
 #define RBM_H
 
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
 #include "decoder.cpp"
 
 using namespace std;
@@ -19,40 +16,66 @@ class rbm {
         int CD_order;
         int n_h;
         int n_v;
-        double L2_par;
-        double learning_rate;
-        
+        int n_l;
+        float L2_par;
+        float learning_rate;
+        float alpha;
+        float beta;
+        float p_drop;
+
+        string CD_type;
+        string regularization;
+
         MatrixXd W;
+        MatrixXd U;
         VectorXd b;
         VectorXd c;
-
+        VectorXd d;
+        
+        MatrixXd dU;
         MatrixXd dW;
         VectorXd dB;
         VectorXd dC;
+        VectorXd dD;
+
+        MatrixXd Persistent;
         
         // Constructor
-        rbm(MTRand & random, map<string,float>& parameters,int nV, int nH);
+        rbm(MTRand & random, map<string,float>& parameters,
+             int nV,int nH,int nL);
         
         // Sample functions
-        MatrixXd hidden_activation(MatrixXd v_state);
-        MatrixXd visible_activation(MatrixXd h_state);
-
-        MatrixXd sample_hidden(MTRand & random,MatrixXd v_state);
-        MatrixXd sample_visible(MTRand & random, MatrixXd h_state);
+        MatrixXd hidden_activation(const MatrixXd & v_state,
+                                   const MatrixXd & l_state);
+        MatrixXd visible_activation(const MatrixXd & h_state);
+        MatrixXd label_activation(const MatrixXd & h_state);
+        
+        MatrixXd sample_hidden(MTRand & random,const MatrixXd & v_state,
+                                               const MatrixXd & l_state);
+        MatrixXd sample_visible(MTRand & random, const MatrixXd & h_state);
+        MatrixXd sample_label(MTRand & random, const MatrixXd & h_state);
         
         // Core Functions
-        void CD_k(MTRand & random, MatrixXd batch); 
-        void train(MTRand & random, MatrixXd dataset);
-        void sample(MTRand & random, ofstream & output);
-        void training_sweep(MTRand & random, MatrixXd batch);
- 
+        void CD(MTRand & random, const MatrixXd& batch_V, 
+                                 const MatrixXd& batch_L);
+        
+        vector<double> validate(MTRand & random, Decoder & TC,
+                const MatrixXd& validSet_E, const MatrixXd& validSet_S);
+        
+        void train(MTRand & random, const string& network,
+                const MatrixXd& dataset_V, const MatrixXd& dataset_L,
+                const MatrixXd& validSet_E, const MatrixXd& validSet_S);
+        
+        double decode(MTRand & random, Decoder & TC, 
+                        MatrixXd& testSet_E, MatrixXd& testSet_S);
+
         // Utilities
-        void saveParameters(string& modelName);
         void loadParameters(string& modelName);
-        double reconstruction_error(MatrixXd data, MatrixXd h_state);
-        MatrixXd sigmoid(MatrixXd matrix); 
-        MatrixXd MC_sampling(MTRand & random, MatrixXd activation);
-        void printNetwork();
+        void saveParameters(string& modelName);
+        void printNetwork(const string& network);
+        
+        MatrixXd sigmoid(MatrixXd & matrix); 
+        MatrixXd MC_sampling(MTRand & random, MatrixXd & activation);
 
 };
 
