@@ -243,14 +243,22 @@ void rbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L
 // Train the Boltzmann Machine
 //*****************************************************************************
 
-void rbm::train(MTRand & random, const string& network,
+void rbm::train(MTRand & random, const string& network, Decoder & TC,
         const MatrixXd & dataset_V, const MatrixXd & dataset_L,
-        const MatrixXd& validSet_E, const MatrixXd& validSet_S) 
+        const MatrixXd& validSet_E, const MatrixXd& validSet_S,
+        ofstream & validationFILE) 
 {
 
     int n_batches = dataset_V.rows() / batch_size;
+    int training_batch_size = batch_size;
+
     MatrixXd batch_V(batch_size,n_v);
     MatrixXd batch_L(batch_size,n_l);
+    
+    vector<double> training_observations;
+
+    int valid_frequency = 10;
+    int counter = 0;
 
     cout << endl << endl;
     cout << "Training with Weight Decay..." << endl << endl;
@@ -262,6 +270,27 @@ void rbm::train(MTRand & random, const string& network,
             batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
             CD(random,batch_V,batch_L);
         }
+        counter++;
+
+        if (counter == valid_frequency) {
+            
+            training_observations = validate(random,TC,validSet_E,validSet_S);
+            counter = 0;
+            //cout << "Validating the performances -->" ;
+            //cout << "Steps Taken: " << training_observations[0] << "   ";
+            //cout << "Avg Syndromes: " << training_observations[1]/100.0 << "   ";
+            //cout << "Avg Errors: " << training_observations[2]/100.0 << "   ";
+            //cout << endl<<endl; 
+            validationFILE << e << "   ";
+            validationFILE << training_observations[0] << "   ";
+            validationFILE << training_observations[1]/100.0 << "   ";
+            validationFILE << training_observations[2]/100.0 << "   ";
+            validationFILE << endl; 
+ 
+            training_observations.clear();
+            batch_size = training_batch_size;
+        }
+        
     }
  
 }
@@ -394,8 +423,6 @@ vector<double> rbm::validate(MTRand & random , Decoder & TC,
     for (int s=0; s<size; ++s) {
         
         counter = 0;
-
-        //cout << "Error # " << s << endl;
 
         for (int j=0; j<n_v; ++j) {
             

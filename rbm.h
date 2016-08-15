@@ -62,9 +62,9 @@ class rbm {
         vector<double> validate(MTRand & random, Decoder & TC,
                 const MatrixXd& validSet_E, const MatrixXd& validSet_S);
         
-        void train(MTRand & random, const string& network,
+        void train(MTRand & random, const string& network, Decoder & TC,
                 const MatrixXd& dataset_V, const MatrixXd& dataset_L,
-                const MatrixXd& validSet_E, const MatrixXd& validSet_S);
+                const MatrixXd& validSet_E, const MatrixXd& validSet_S,ofstream & validationFILE);
         
         double decode(MTRand & random, Decoder & TC, 
                         MatrixXd& testSet_E, MatrixXd& testSet_S);

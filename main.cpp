@@ -37,30 +37,46 @@ int main(int argc, char* argv[]) {
     MTRand random(1357);
     
     //clock_t begin = clock();
-    
+           
     if (command.compare("train") == 0) {
             
         int train_size = 200000;
+        int valid_size = 100;
 
         vector<MatrixXd> dataset(2);
         MatrixXd train_E(train_size,int(Parameters["nV"]));
         MatrixXd train_S(train_size,int(Parameters["nL"]));
+        
+        vector<MatrixXd> validSet(2);
+        MatrixXd valid_E(valid_size,int(Parameters["nV"]));
+        MatrixXd valid_S(valid_size,int(Parameters["nL"]));
  
         dataset = loadDataset(train_size,"Train",Parameters);
         train_E = dataset[0];
         train_S = dataset[1];
-            
+        validSet = loadValidSet(Parameters);
+        valid_E = validSet[0];
+        valid_S = validSet[1];
+        
+        string validationName = buildObserverName(network,model,Parameters,
+                                                CD_id, Reg_id); 
+ 
+        ofstream fout(validationName);
+
         rbm rbm(random,Parameters, int(Parameters["nV"]),
-                                     int(Parameters["nH"]),
-                                     int(Parameters["nL"]));
+                                   int(Parameters["nH"]),
+                                   int(Parameters["nL"]));
         
         rbm.printNetwork(network);
 
         string modelName = buildModelName(network,model,Parameters,
                                           CD_id, Reg_id);
         
-        //rbm.train(random,network,train_E,train_S); 
-        //rbm.saveParameters(modelName); 
+        int L = int(sqrt(Parameters["nV"]/2));
+        Decoder TC(L);
+ 
+        rbm.train(random,network,TC,train_E,train_S,valid_E,valid_S,fout); 
+        rbm.saveParameters(modelName); 
         
     }
     
@@ -73,7 +89,7 @@ int main(int argc, char* argv[]) {
         MatrixXd data_E(size,int(Parameters["nV"]));
         MatrixXd data_S(size,int(Parameters["nL"]));
         
-                int L = int(sqrt(Parameters["nV"]/2));
+        int L = int(sqrt(Parameters["nV"]/2));
         Decoder TC(L);
 
         string modelName = buildModelName(network,model,Parameters,

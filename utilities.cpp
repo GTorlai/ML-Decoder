@@ -145,6 +145,26 @@ string buildAccuracyName(const string& network, const string& model,
 
 
 //*****************************************************************************
+// Generate the Name of the output file
+//*****************************************************************************
+
+string buildObserverName(const string& network, const string& model,
+                     map<string,float>& par,
+                     const string& CD_id, const string& Reg_id) 
+{
+    
+    int L = int(sqrt(par["nV"]/2));
+    string accuracyName = "data/training_observer/L";
+    accuracyName += boost::str(boost::format("%d") % L);
+    accuracyName += "/";
+    accuracyName += buildBaseName(network,model,par,CD_id,Reg_id); 
+    accuracyName += "_p";
+    accuracyName += boost::str(boost::format("%.3f") % par["p"]);
+    accuracyName += "_Validation.txt";
+ 
+    return accuracyName;
+}
+//*****************************************************************************
 // Load datasets 
 //*****************************************************************************
 
@@ -181,6 +201,62 @@ vector<Eigen::MatrixXd> loadDataset(int size, string id,
     errorName    += ".txt";
     syndromeName += ".txt";
     
+    ifstream dataFile_E(errorName);
+    ifstream dataFile_S(syndromeName);
+    
+    for (int n=0; n<size; n++) {
+        
+        for (int j=0; j<int(parameters["nV"]); j++) {
+
+            dataFile_E >> data_E(n,j);
+        }
+
+        for (int k=0; k<int(parameters["nL"]); k++) {
+
+            dataFile_S >> data_S(n,k);
+        }
+    }
+
+    dataset.push_back(data_E);
+    dataset.push_back(data_S);
+
+    return dataset;
+}
+
+
+vector<Eigen::MatrixXd> loadValidSet(map<string,float>& parameters) 
+
+{
+    string id = "Valid";
+    int size = 100;
+    int L = int(sqrt(parameters["nV"]/2));
+    Eigen::MatrixXd data_E(size,int(parameters["nV"]));
+    Eigen::MatrixXd data_S(size,int(parameters["nL"]));
+    
+    vector<Eigen::MatrixXd> dataset;
+
+    string baseName     = "data/datasets/";
+    baseName += id;
+    baseName += "/L";
+    baseName += boost::str(boost::format("%d") % L);
+    baseName += "/";
+    
+    string errorName    = baseName + "Error_" + id;
+    string syndromeName = baseName + "Syndrome_" + id;
+ 
+    errorName    += "_L" + boost::str(boost::format("%d") % L) + "_";
+    syndromeName += "_L" + boost::str(boost::format("%d") % L) + "_";
+
+
+    errorName    += "0k_p";
+    syndromeName += "0k_p";
+    errorName    += boost::str(boost::format("%.3f") % parameters["p"]);
+    syndromeName += boost::str(boost::format("%.3f") % parameters["p"]);
+    errorName    += ".txt";
+    syndromeName += ".txt";
+   
+    cout << errorName << endl;
+
     ifstream dataFile_E(errorName);
     ifstream dataFile_S(syndromeName);
     
