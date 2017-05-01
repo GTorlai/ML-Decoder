@@ -25,12 +25,8 @@ void initializeParameters(map<string,float>& par)
     par["lr"] = 0;
     par["L2"] = -1.0;
     par["CD"] = -1;
-    par["PCD"] = -1;
-    par["l"] = 0;
     par["ep"] = 0;
     par["bs"] = 0;
-    par["p_drop"] = -1.0;
-    par["beta"] = 0.0;
 
 }
 
@@ -69,28 +65,16 @@ string buildBaseName(const string& network, const string& model,
     
     baseName += "_CD";
     baseName += boost::str(boost::format("%.0f") % par["CD"]);
-    
-   
     baseName += "_nH";
-    
     baseName += boost::str(boost::format("%.0f") % par["nH"]);
-    
     baseName += "_bs";
     baseName += boost::str(boost::format("%.0f") % par["bs"]);
     baseName += "_ep";
     baseName += boost::str(boost::format("%.0f") % par["ep"]);
     baseName += "_lr";
     baseName += boost::str(boost::format("%.3f") % par["lr"]);
-    
-    if (Reg_id.compare("Weight Decay")==0) {
-        baseName += "_WD";
-        baseName += boost::str(boost::format("%.3f") % par["L2"]);
-    }
-    else {
-        baseName += "_drop";
-        baseName += boost::str(boost::format("%.2f") % par["p_drop"]);
-    }
-    
+    baseName += "_WD";
+    baseName += boost::str(boost::format("%.3f") % par["L2"]);
     baseName += "_";
     baseName += model;
     baseName += "_L";
@@ -98,6 +82,26 @@ string buildBaseName(const string& network, const string& model,
     baseName += boost::str(boost::format("%d") % L);
     
     return baseName;
+}
+
+//*****************************************************************************
+// Generate the Name of the model file for ONLINE saving
+//*****************************************************************************
+
+string buildModelName_ONLINE(const string& network, const string& model,
+                     map<string,float>& par,
+                     const string& CD_id, const string& Reg_id) 
+{
+    
+    int L = int(sqrt(par["nV"]/2));
+    string modelName = "data/networks/L";
+    modelName += boost::str(boost::format("%d") % L);
+    modelName += "/";
+    modelName += buildBaseName(network,model,par,CD_id,Reg_id); 
+    modelName += "_p";
+    modelName += boost::str(boost::format("%.3f") % par["p"]);
+ 
+    return modelName;
 }
 
 
@@ -143,32 +147,11 @@ string buildAccuracyName(const string& network, const string& model,
     return accuracyName;
 }
 
-
-//*****************************************************************************
-// Generate the Name of the output file
-//*****************************************************************************
-
-string buildObserverName(const string& network, const string& model,
-                     map<string,float>& par,
-                     const string& CD_id, const string& Reg_id) 
-{
-    
-    int L = int(sqrt(par["nV"]/2));
-    string accuracyName = "data/training_observer/L";
-    accuracyName += boost::str(boost::format("%d") % L);
-    accuracyName += "/";
-    accuracyName += buildBaseName(network,model,par,CD_id,Reg_id); 
-    accuracyName += "_p";
-    accuracyName += boost::str(boost::format("%.3f") % par["p"]);
-    accuracyName += "_Validation.txt";
- 
-    return accuracyName;
-}
 //*****************************************************************************
 // Load datasets 
 //*****************************************************************************
 
-vector<Eigen::MatrixXd> loadDataset(int size, string id, 
+vector<Eigen::MatrixXd> loadDataset(int size, string id,double p, 
                                     map<string,float>& parameters) 
 
 {
@@ -185,8 +168,8 @@ vector<Eigen::MatrixXd> loadDataset(int size, string id,
     baseName += boost::str(boost::format("%d") % L);
     baseName += "/";
     
-    string errorName    = baseName + "Error_" + id;
-    string syndromeName = baseName + "Syndrome_" + id;
+    string errorName    = baseName + "Error_" + id;// + "_Depolarizing";
+    string syndromeName = baseName + "Syndrome_" + id;// + "_Depolarizing";
  
     errorName    += "_L" + boost::str(boost::format("%d") % L) + "_";
     syndromeName += "_L" + boost::str(boost::format("%d") % L) + "_";
@@ -196,67 +179,10 @@ vector<Eigen::MatrixXd> loadDataset(int size, string id,
     syndromeName += sSize;
     errorName    += "k_p";
     syndromeName += "k_p";
-    errorName    += boost::str(boost::format("%.3f") % parameters["p"]);
-    syndromeName += boost::str(boost::format("%.3f") % parameters["p"]);
+    errorName    += boost::str(boost::format("%.3f") % p);
+    syndromeName += boost::str(boost::format("%.3f") % p);
     errorName    += ".txt";
     syndromeName += ".txt";
-    
-    ifstream dataFile_E(errorName);
-    ifstream dataFile_S(syndromeName);
-    
-    for (int n=0; n<size; n++) {
-        
-        for (int j=0; j<int(parameters["nV"]); j++) {
-
-            dataFile_E >> data_E(n,j);
-        }
-
-        for (int k=0; k<int(parameters["nL"]); k++) {
-
-            dataFile_S >> data_S(n,k);
-        }
-    }
-
-    dataset.push_back(data_E);
-    dataset.push_back(data_S);
-
-    return dataset;
-}
-
-
-vector<Eigen::MatrixXd> loadValidSet(map<string,float>& parameters) 
-
-{
-    string id = "Valid";
-    int size = 100;
-    int L = int(sqrt(parameters["nV"]/2));
-    Eigen::MatrixXd data_E(size,int(parameters["nV"]));
-    Eigen::MatrixXd data_S(size,int(parameters["nL"]));
-    
-    vector<Eigen::MatrixXd> dataset;
-
-    string baseName     = "data/datasets/";
-    baseName += id;
-    baseName += "/L";
-    baseName += boost::str(boost::format("%d") % L);
-    baseName += "/";
-    
-    string errorName    = baseName + "Error_" + id;
-    string syndromeName = baseName + "Syndrome_" + id;
- 
-    errorName    += "_L" + boost::str(boost::format("%d") % L) + "_";
-    syndromeName += "_L" + boost::str(boost::format("%d") % L) + "_";
-
-
-    errorName    += "0k_p";
-    syndromeName += "0k_p";
-    errorName    += boost::str(boost::format("%.3f") % parameters["p"]);
-    syndromeName += boost::str(boost::format("%.3f") % parameters["p"]);
-    errorName    += ".txt";
-    syndromeName += ".txt";
-   
-    cout << errorName << endl;
-
     ifstream dataFile_E(errorName);
     ifstream dataFile_S(syndromeName);
     

@@ -3,7 +3,7 @@
 #include <omp.h>
 #include <fstream>
 #include <boost/format.hpp>
-#include "decoder.cpp"
+#include "ToricCode.cpp"
 
 int main(int argc, char* argv[]) {
     
@@ -34,13 +34,15 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    string baseName = "data/datasets/";
+    string baseName = "data/datasets/2dTC/";
+    //string baseName = "data/";
     baseName += id;
     baseName += "/L";
     baseName += to_string(L);
     baseName += "/";
     string extension = "_"; 
-    extension += id;
+    //extension += id;
+    extension += "Test";
     extension += "_L";
     extension += to_string(L);
     extension += "_";
@@ -68,6 +70,12 @@ int main(int argc, char* argv[]) {
     cout << p;
     cout << endl;
 
+    //for (int i=0;i<3;i++) {
+    //    for (int j=0; j<size; j++) {
+
+    //        file_E << i << endl;
+    //    }
+    //} 
     for (int i=0; i<size; ++i) {
         
         E = TC.generateError(random,p);

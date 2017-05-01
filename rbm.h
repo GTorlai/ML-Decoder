@@ -22,7 +22,7 @@ class rbm {
         float alpha;
         float beta;
         float p_drop;
-
+        double sparse_par;
         string CD_type;
         string regularization;
 
@@ -62,16 +62,23 @@ class rbm {
         vector<double> validate(MTRand & random, Decoder & TC,
                 const MatrixXd& validSet_E, const MatrixXd& validSet_S);
         
-        void train(MTRand & random, const string& network, Decoder & TC,
-                const MatrixXd& dataset_V, const MatrixXd& dataset_L,
-                const MatrixXd& validSet_E, const MatrixXd& validSet_S,ofstream & validationFILE);
+        void train(MTRand & random, const string& netName, Decoder & TC,
+                const MatrixXd& dataset_V, const MatrixXd& dataset_L);
+                //const MatrixXd& validSet_E, const MatrixXd& validSet_S,
+                //ofstream & fileName);
         
-        double decode(MTRand & random, Decoder & TC, 
+        vector<double> decode(MTRand & random, Decoder & TC, 
+                        MatrixXd& testSet_E, MatrixXd& testSet_S);
+        
+        vector<double> decodeSTAT(MTRand & random, Decoder & TC, 
                         MatrixXd& testSet_E, MatrixXd& testSet_S);
 
+        double freeEnergy(VectorXd E, VectorXd S);
         // Utilities
         void loadParameters(string& modelName);
         void saveParameters(string& modelName);
+        void saveParameters_ONLINE(const string& modelName,int e);
+        void loadParameters_ONLINE(const string& modelName,int e);
         void printNetwork(const string& network);
         
         MatrixXd sigmoid(MatrixXd & matrix); 

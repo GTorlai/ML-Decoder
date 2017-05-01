@@ -1,9 +1,7 @@
 #ifndef DECODER_H
 #define DECODER_H
 
-//#include <vector>
 #include <fstream>
-//#include <iostream>
 #include "MersenneTwister.h"
 #include <Eigen/Core>
 #include "utilities.cpp"
@@ -23,7 +21,7 @@ class Decoder {
         vector<vector<int> > Neighbors;
         vector<vector<int> > plaqQubits;
         vector<vector<int> > starQubits;
-       
+        vector<vector<int> > qubitStars; 
         Decoder(int L_);
         
         vector<int> generateError(MTRand & random, double p);
@@ -32,7 +30,9 @@ class Decoder {
         vector<int> getCycle(vector<int> E0, vector<int> E);
         int syndromeCheck(vector<int> E0, vector<int> E);
         int getLogicalState(vector<int> C);
+        int getHomologyClass(vector<int> C);
 
+        int qIndex(int j, int s);
         int index(int x, int y);
         void printToricCodeInfo();
         void printVector(vector<int> Vector);

@@ -12,6 +12,7 @@ Decoder::Decoder(int L_) {
     Neighbors.resize(N,vector<int>(4));
     plaqQubits.resize(N,vector<int>(4));
     starQubits.resize(N,vector<int>(4));
+    qubitStars.resize(Nqubits,vector<int>(2));
 
     for (int i=1;i<N;i++){
         
@@ -63,6 +64,24 @@ Decoder::Decoder(int L_) {
         starQubits[i][1]=2*i+1;
         starQubits[i][2]=2*Neighbors[i][2];
         starQubits[i][3]=2*Neighbors[i][3]+1;
+    }
+    
+    int c=0;
+
+    for (int i=0;i<Nqubits;i++) {
+        
+        c = 0;
+        
+        for(int j=0;j<N;j++) {
+            
+            for (int k=0;k<4;k++) {
+                
+                if (starQubits[j][k] == i) {
+                    qubitStars[i][c] = j;
+                    c++; 
+                }       
+            }
+        }
     }
 
 
@@ -143,15 +162,12 @@ int Decoder::syndromeCheck(vector<int> E0, vector<int> E) {
     return status;
 }
 
-
 int Decoder::getLogicalState(vector<int> C) {
 
     int status = 0;
 
     for (int x=0; x<L; x++) {
-
         int temp = 0;
-
         for (int y=0; y<L; y++) {
 
             temp += C[starQubits[index(x,y)][0]];
@@ -164,6 +180,45 @@ int Decoder::getLogicalState(vector<int> C) {
     }
 
     return status;
+}
+
+int Decoder::getHomologyClass(vector<int> C) {
+
+    int loop1=0;
+    int loop2=0;
+    int h = 0;
+
+    for (int x=0; x<L; x++) {
+        int temp = 0;
+        for (int y=0; y<L; y++) {
+            temp += C[starQubits[index(x,y)][0]];
+        }
+        if ((temp % 2) != 0) {
+            loop1 = 1;
+        }
+    }
+    
+    for (int y=0; y<L; y++) {
+        int temp = 0;
+        for (int x=0; x<L; x++) {
+            temp += C[starQubits[index(x,y)][1]];
+        }
+        if ((temp % 2) != 0) {
+            loop2 = 1;
+        }
+    }
+
+    if ((loop1==1) && (loop2==0)) {
+        h=1;
+    }
+    if ((loop1==0) && (loop2==1)) {
+        h=2;
+    }
+    if ((loop1==1) && (loop2==1)) {
+        h=3;
+    }
+
+    return h;
 }
 
 
@@ -251,6 +306,18 @@ void Decoder::testDecoder(MTRand & random) {
 
 }
 
+int Decoder::qIndex(int j, int s) {
+
+    int index;
+
+    for (int i=0; i<4; i++) {
+
+        if (starQubits[s][i] == j) {
+            index = i;
+        }
+    }
+    return index;
+}
 
 //Indexing of coordinates
 int Decoder::index(int x, int y) {
@@ -328,6 +395,21 @@ void Decoder::printToricCodeInfo() {
         
         for (int j=0; j<4;j++) {
             cout << starQubits[i][j] << " , ";
+        }
+        
+        cout << endl;
+    }
+    cout << endl << endl << endl;
+    
+    cout << "Printing stars on links..." << endl << endl;
+ 
+    for (int i=0; i<Nqubits; i++) {
+
+        cout << "Link "<<i;
+        cout << "  --> Stars: ";
+        
+        for (int j=0; j<2;j++) {
+            cout << qubitStars[i][j] << " , ";
         }
         
         cout << endl;

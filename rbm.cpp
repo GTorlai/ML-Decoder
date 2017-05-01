@@ -15,16 +15,15 @@ rbm::rbm(MTRand & random, map<string,float>& parameters,
     learning_rate = parameters["lr"];
     L2_par        = parameters["L2"];
     CD_order      = int(parameters["CD"]); 
+   
+    regularization = "Weight Decay";
     
-    if (L2_par > 0) regularization = "Weight Decay";
     alpha = 0.9;
     
     n_v = nV;
     n_h = nH;
     n_l = nL;
     
-    //Persistent.setZero(batch_size,n_h);
-
     W.setZero(n_h,n_v);
     U.setZero(n_h,n_l);
     b.setZero(n_v);
@@ -180,7 +179,9 @@ void rbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L
 {
     
     MatrixXd h_activation(batch_size,n_h);
-    
+    MatrixXd v_activation(batch_size,n_v);
+    MatrixXd l_activation(batch_size,n_l);
+
     MatrixXd h_state(batch_size,n_h);
     MatrixXd v_state(batch_size,n_v);
     MatrixXd l_state(batch_size,n_l);
@@ -207,17 +208,17 @@ void rbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L
         dB += v;
         dC += h;
         dD += l;
-    } 
+    }
+    
     
     for (int k=0; k<CD_order; k++) {
-
         v_state = sample_visible(random,h_state);
         l_state = sample_label(random,h_state);
         h_state = sample_hidden(random,v_state,l_state);
     }
 
     h_activation = hidden_activation(v_state,l_state);
-    
+ 
     for (int s=0; s<batch_size; s++) {
         h = h_activation.row(s);
         v = v_state.row(s);
@@ -234,7 +235,6 @@ void rbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L
     b += + (learning_rate/batch_size) * dB;
     c += + (learning_rate/batch_size) * dC;
     d += + (learning_rate/batch_size) * dD;
-    
 
 }
 
@@ -243,10 +243,10 @@ void rbm::CD(MTRand & random, const MatrixXd & batch_V, const MatrixXd & batch_L
 // Train the Boltzmann Machine
 //*****************************************************************************
 
-void rbm::train(MTRand & random, const string& network, Decoder & TC,
-        const MatrixXd & dataset_V, const MatrixXd & dataset_L,
-        const MatrixXd& validSet_E, const MatrixXd& validSet_S,
-        ofstream & validationFILE) 
+void rbm::train(MTRand & random, const string& netName, Decoder & TC,
+        const MatrixXd & dataset_V, const MatrixXd & dataset_L)
+        //const MatrixXd& validSet_E, const MatrixXd& validSet_S,
+        //ofstream & fileName) 
 {
 
     int n_batches = dataset_V.rows() / batch_size;
@@ -257,42 +257,20 @@ void rbm::train(MTRand & random, const string& network, Decoder & TC,
     
     vector<double> training_observations;
 
-    int valid_frequency = 10;
+    int valid_frequency = 50;
     int counter = 0;
 
-    cout << endl << endl;
-    cout << "Training with Weight Decay..." << endl << endl;
+    //cout << endl << endl;
+    //cout << "Training with Weight Decay..." << endl << endl;
     
-    for (int e=0; e<epochs; e++) {
+    for (int e=1; e<epochs+1; e++) {
         cout << "Epoch: " << e << endl;
         for (int b=0; b< n_batches; b++) {
             batch_V = dataset_V.block(b*batch_size,0,batch_size,n_v);
             batch_L = dataset_L.block(b*batch_size,0,batch_size,n_l);
             CD(random,batch_V,batch_L);
         }
-        counter++;
-
-        if (counter == valid_frequency) {
-            
-            training_observations = validate(random,TC,validSet_E,validSet_S);
-            counter = 0;
-            //cout << "Validating the performances -->" ;
-            //cout << "Steps Taken: " << training_observations[0] << "   ";
-            //cout << "Avg Syndromes: " << training_observations[1]/100.0 << "   ";
-            //cout << "Avg Errors: " << training_observations[2]/100.0 << "   ";
-            //cout << endl<<endl; 
-            validationFILE << e << "   ";
-            validationFILE << training_observations[0] << "   ";
-            validationFILE << training_observations[1]/100.0 << "   ";
-            validationFILE << training_observations[2]/100.0 << "   ";
-            validationFILE << endl; 
- 
-            training_observations.clear();
-            batch_size = training_batch_size;
-        }
-        
-    }
- 
+    }        
 }
 
 
@@ -300,19 +278,110 @@ void rbm::train(MTRand & random, const string& network, Decoder & TC,
 // Perform Error Correction
 //*****************************************************************************
 
-double rbm::decode(MTRand & random, Decoder & TC, 
+vector<double> rbm::decodeSTAT(MTRand & random, Decoder & TC, 
+                            MatrixXd& testSet_E, MatrixXd& testSet_S) 
+{
+    
+    batch_size = 1;
+    int n_frequency = 5;
+    int eq = 200;
+    int N_stat = 1000;
+    int error=0; 
+    int S_status;
+    int C_status;
+    vector<double> homology;
+    homology.assign(4,0.0);
+    int h;
+    int counter = 0;
+    int size = 10000;
+
+    MatrixXd h_state(batch_size,n_h);
+    MatrixXd v_state(batch_size,n_v);
+    MatrixXd l_state(batch_size,n_l);
+    
+    vector<int> E;
+    E.assign(n_v,0);
+    vector<int> E0;
+    E0.assign(n_v,0);
+    vector<int> C;
+    C.assign(n_v,0);
+   
+    for (int n=0; n<size; n++) { 
+        cout << "Error chain #" << n << endl;
+        for (int j=0; j<n_v; ++j) {
+            E0[j] = int(testSet_E(n,j));
+        }
+        
+        for (int k=0; k<n_l; ++k) {
+            l_state(0,k) = testSet_S(n,k);
+        }
+        
+        for (int j=0; j<n_v; ++j) {
+            v_state(0,j) = random.randInt(1);
+        }
+ 
+        for (int n=0; n<eq; ++n) {
+            h_state = sample_hidden(random,v_state,l_state);  
+            v_state = sample_visible(random,h_state);
+        }
+
+        for (int s=0; s<N_stat; ++s) {
+            
+            //cout << s << endl;
+            counter = 0;
+            
+            do {
+
+                for(int i=0; i<n_frequency; ++i) {
+                    h_state = sample_hidden(random,v_state,l_state);
+                    v_state = sample_visible(random,h_state);
+                }
+                for (int j=0; j<n_v; ++j) {
+                    E[j] = int(v_state(0,j));
+                }
+ 
+                S_status = TC.syndromeCheck(E0,E);
+                counter++;
+
+                    
+            } while ((S_status != 0) && (counter < 25000));
+            
+            if (S_status == 0) {
+                C = TC.getCycle(E0,E);
+                h = TC.getHomologyClass(C);
+                homology[h]+= 1.0;
+                //cout << "Homology: " << h << endl << endl; 
+            }
+        }
+    }
+
+    for (int i=0; i<4; i++) {
+        homology[i] = homology[i]*100.0/(1.0*N_stat*size); 
+    }
+    
+    cout << "Homology classes:\n\n";
+    cout << "\t Class 0: " << homology[0] << "%" << endl << endl;
+    cout << "\t Class 1: " << homology[1] << "%" << endl << endl;
+    cout << "\t Class 2: " << homology[2] << "%" << endl << endl;
+    cout << "\t Class 3: " << homology[3] << "%" << endl << endl;
+
+    return homology;
+}
+
+vector<double> rbm::decode(MTRand & random, Decoder & TC, 
                             MatrixXd& testSet_E, MatrixXd& testSet_S) 
 {
     
     int size = 10000;
     batch_size = 1;
-    int n_frequency = 10;
-    int eq = 500;
-    
+    int n_frequency = 1;
+    int eq = 200;
+     
     int corrected = 0;
     int S_status;
     int C_status;
     int counter=0;
+    int matched=0;
 
     MatrixXd h_state(batch_size,n_h);
     MatrixXd v_state(batch_size,n_v);
@@ -321,6 +390,7 @@ double rbm::decode(MTRand & random, Decoder & TC,
     vector<int> E;
     vector<int> E0;
     vector<int> C;
+    vector<int> S;
     E.assign(n_v,0);
     E0.assign(n_v,0);
     C.assign(n_v,0);
@@ -328,13 +398,14 @@ double rbm::decode(MTRand & random, Decoder & TC,
     for (int s=0; s<size; ++s) {
         
         counter = 0;
-
-        cout << "Error # " << s << endl;
-
+        //cout << "---------------------------------";
+        cout << "Error # " << s << ":  ";
+        //cout << endl << endl;
+        //cout << "E0 =  ";
         for (int j=0; j<n_v; ++j) {
-            
             v_state(0,j) = random.randInt(1);
             E0[j] = int(testSet_E(s,j));
+            //cout << E0[j] << " ";
         }
         
         for (int k=0; k<n_l; ++k) {
@@ -366,126 +437,74 @@ double rbm::decode(MTRand & random, Decoder & TC,
             
             counter++;
             
-        } while ((S_status != 0) && (counter < 10000));
-        
-        if (S_status == 0) {
-
-            C = TC.getCycle(E0,E);
-            C_status = TC.getLogicalState(C);
-
-            if (C_status == 0) {
-                cout << " -> CORRECTED" << endl;
-                corrected++;
-            }
-            
-            else cout << " -> FAILED" << endl;
-
-        }
-        
-    }
-    
-    cout << "\n\nAccuracy: " << 100.0*corrected/(1.0*size) << endl;    
-    double accuracy = 100.0*corrected/(1.0*size);
-
-    return accuracy;
-}
-
-vector<double> rbm::validate(MTRand & random , Decoder & TC,
-        const MatrixXd& validSet_E, const MatrixXd& validSet_S)
-{
-
-    int size = 100;
-    batch_size = 1;
-    int n_frequency = 2;
-    int eq = 100;
-    
-    int corrected = 0;
-    int matched = 0;
-    int stepsTAKEN = 0;
-    int S_status;
-    int C_status;
-    int counter=0;
-
-    MatrixXd h_state(batch_size,n_h);
-    MatrixXd v_state(batch_size,n_v);
-    MatrixXd l_state(batch_size,n_l);
-    
-    vector<int> E;
-    vector<int> E0;
-    vector<int> C;
-    
-    E.assign(n_v,0);
-    E0.assign(n_v,0);
-    C.assign(n_v,0);
-
-    vector<double> results;
-
-    for (int s=0; s<size; ++s) {
-        
-        counter = 0;
-
-        for (int j=0; j<n_v; ++j) {
-            
-            v_state(0,j) = random.randInt(1);
-            E0[j] = int(validSet_E(s,j));
-        }
-        
-        for (int k=0; k<n_l; ++k) {
-            
-            l_state(0,k) = validSet_S(s,k);
-        }
-
-        for (int n=0; n<eq; ++n) {
-        
-            h_state = sample_hidden(random,v_state,l_state);  
-            v_state = sample_visible(random,h_state);
-        }
-        
-         
-        do {
-            
-            for(int i=0; i<n_frequency; ++i) {
-            
-                h_state = sample_hidden(random,v_state,l_state);
-                v_state = sample_visible(random,h_state);
-            }
-            
-            for (int j=0; j<n_v; ++j) {
-                    
-                E[j] = int(v_state(0,j));
-            }
- 
-            S_status = TC.syndromeCheck(E0,E);
-            
-            counter++;
-            
-        } while ((S_status != 0) && (counter < 100));
-        
-        stepsTAKEN += counter;
+        } while ((S_status != 0) && (counter < 20000));
+       
+        //cout << endl << endl <<  "E1 =  ";
+        //for (int j=0; j<n_v; ++j) {
+        //    cout << E[j] << " ";
+       // }
+        //cout << endl << endl;
 
         if (S_status == 0) {
             
+            //cout << " MATCHED  ";
+
             matched++;
 
             C = TC.getCycle(E0,E);
             C_status = TC.getLogicalState(C);
 
             if (C_status == 0) {
-                //cout << " -> CORRECTED" << endl;
+                cout << " -> CORRECTED" << endl;
+                //S = TC.getSyndrome(E0);
+                //cout << endl<< "S0:  ";
+                //for (int k=0; k<n_l; ++k) {
+                //    cout << S[k] << " ";
+                //}
+                //cout << endl<< "S1:  ";
+                //S=TC.getSyndrome(E);
+                //for (int k=0; k<n_l; ++k) {
+                //    cout << S[k] << " ";
+                //}
+                //cout << endl << endl;
+ 
                 corrected++;
             }
             
-            //else cout << " -> FAILED" << endl;
+            //else {
+            //    cout << " -> FAILED" << endl;
+            //    S = TC.getSyndrome(E0);
+            //    cout << endl<< "S0:  ";
+            //    for (int k=0; k<n_l; ++k) {
+            //        cout << S[k] << " ";
+            //    }
+            //    cout << endl<< "S1:  ";
+            //    S=TC.getSyndrome(E);
+            //    for (int k=0; k<n_l; ++k) {
+            //        cout << S[k] << " ";
+            //    }
+            //    cout << endl << endl;
+            //}
         }
-    }
-
-    results.push_back(1.0*stepsTAKEN/(1.0*size));
-    results.push_back(1.0*matched/(1.0*size));
-    results.push_back(1.0*corrected/(1.0*size));
     
-    return results;
+        //else cout << " NOT MATCHED  " << endl;
+        
+    }
+    vector<double> results;
 
+    cout << "\n\nAccuracy: " << 100.0*corrected/(1.0*size) << endl;    
+    double E_accuracy   = 100.0*corrected/(1.0*size);
+    double S_accuracy   = 100.0*matched/(1.0*size);
+    double Rel_accuracy = 100.0*corrected/(1.0*matched);
+    results.push_back(S_accuracy);
+    results.push_back(E_accuracy);
+    results.push_back(Rel_accuracy);
+
+    return results;
 }
+
+
+
 
 
 //*****************************************************************************
@@ -532,7 +551,7 @@ void rbm::loadParameters(string& modelName)
 
 void rbm::saveParameters(string& modelName) 
 {
-
+    
     ofstream file(modelName);
 
     for (int i=0; i<n_h;i++) {
@@ -572,6 +591,101 @@ void rbm::saveParameters(string& modelName)
     file.close(); 
 
 }
+
+//*****************************************************************************
+// Load the Network Parameters
+//*****************************************************************************
+
+void rbm::loadParameters_ONLINE(const string& modelName, int e) 
+{
+    
+    string Name = modelName;
+    Name += "_e";
+    Name += boost::str(boost::format("%d") % e);
+    Name += "_model.txt";
+    
+    ifstream file(modelName);
+
+    for (int i=0; i<n_h;i++) {
+        for (int j=0; j<n_v; j++) {
+            file >> W(i,j);
+        }
+    }
+
+    for (int i=0; i<n_h;i++) {
+        for (int k=0; k<n_l; k++) {
+            file >> U(i,k);
+        }
+    }
+
+    for (int j=0; j<n_v; j++) {
+        file >> b(j);
+    }
+    
+    for (int i=0; i<n_h; i++) {
+        file >> c(i);
+    }
+    
+    for (int k=0; k<n_l; k++) {
+        file >> d(k);
+    }   
+  
+
+}
+
+
+//*****************************************************************************
+// Save the Network Parameters during the Training
+//*****************************************************************************
+
+void rbm::saveParameters_ONLINE(const string& modelName,int e) 
+{
+    
+    string Name = modelName;
+    Name += "_e";
+    Name += boost::str(boost::format("%d") % e);
+    Name += "_model.txt";
+
+    ofstream file(Name);
+
+    for (int i=0; i<n_h;i++) {
+        for (int j=0; j<n_v; j++) {
+            file << W(i,j) << " ";
+        }
+        file << endl;
+    }
+
+    file << endl << endl;
+
+    for (int i=0; i<n_h;i++) {
+        for (int k=0; k<n_l; k++) {
+            file << U(i,k) << " ";
+        }
+        file << endl;
+    }
+
+    file << endl << endl;
+
+    for (int j=0; j<n_v; j++) {
+        file << b(j) << " ";
+    }
+    
+    file << endl << endl;
+
+    for (int i=0; i<n_h; i++) {
+        file << c(i) << " ";
+    }
+    
+    file << endl << endl;
+
+    for (int k=0; k<n_l; k++) {
+        file << d(k) << " ";
+    }   
+    
+    file.close(); 
+
+}
+
 
 
 //*****************************************************************************
